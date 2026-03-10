@@ -1,6 +1,8 @@
 import cors from "cors";
 import express from "express";
 import { env } from "./config/env";
+import { errorHandler } from "./middlewares/errorHandler";
+import { notFoundHandler } from "./middlewares/notFoundHandler";
 import { apiRouter } from "./routes";
 
 const app = express();
@@ -22,5 +24,7 @@ app.get("/", (_request, response) => {
 });
 
 app.use("/api", apiRouter);
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export { app };
