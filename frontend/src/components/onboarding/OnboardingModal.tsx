@@ -30,8 +30,8 @@ export function OnboardingModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-6 py-10 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-4xl border border-slate-200 bg-white p-6 shadow-[0_30px_120px_rgba(15,23,42,0.18)]">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/30 px-6 py-10 backdrop-blur-sm">
+      <div className="relative z-[2001] w-full max-w-2xl rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_30px_120px_rgba(15,23,42,0.18)]">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">

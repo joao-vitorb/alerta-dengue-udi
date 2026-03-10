@@ -24,7 +24,7 @@ export function MapCanvas({ selectedNeighborhood }: MapCanvasProps) {
   const currentZoom = selectedCoordinate ? 13 : 11;
 
   return (
-    <section className="overflow-hidden rounded-4xl border border-slate-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">
@@ -42,16 +42,16 @@ export function MapCanvas({ selectedNeighborhood }: MapCanvasProps) {
 
         <div className="grid gap-2 text-sm text-slate-700">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            Cidade focada: Uberlândia - MG
+            Cidade: Uberlândia - MG
           </div>
           <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
-            Bairro atual: {selectedNeighborhood || "Não definido"}
+            Bairro: {selectedNeighborhood || "Não definido"}
           </div>
         </div>
       </div>
 
       <div className="p-6">
-        <div className="overflow-hidden rounded-[28px] border border-slate-200">
+        <div className="h-[560px] overflow-hidden rounded-[28px] border border-slate-200">
           <MapContainer
             center={uberlandiaCenter}
             zoom={11}
@@ -61,7 +61,7 @@ export function MapCanvas({ selectedNeighborhood }: MapCanvasProps) {
             maxBoundsViscosity={1}
             zoomControl={false}
             scrollWheelZoom={false}
-            className="h-140 w-full"
+            className="h-full w-full"
           >
             <TileLayer
               attribution="&copy; OpenStreetMap contributors"
