@@ -116,7 +116,7 @@ export function MapPage() {
 
       <section className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
         <aside className="space-y-6">
-          <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-4xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">
               Plataforma de prevenção
             </p>
@@ -128,7 +128,7 @@ export function MapPage() {
             </h2>
 
             <p className="mt-4 text-sm leading-7 text-slate-600">
-              O onboarding agora salva dados localmente e sincroniza a
+              AO onboarding agora salva dados localmente e sincroniza a
               experiência mínima com o backend sem exigir conta de usuário.
             </p>
 
@@ -142,12 +142,10 @@ export function MapPage() {
           </section>
 
           <InfoCard
-            eyebrow="Experiência local"
-            value={
-              experience?.hasCompletedOnboarding ? "Concluído" : "Pendente"
-            }
-            title="Onboarding e persistência local"
-            description="A aplicação já registra primeira visita, anonymousId, bairro e preferências da interface no navegador."
+            eyebrow="Mapa"
+            value={experience?.neighborhood || "Uberlândia"}
+            title="Visualização real da cidade"
+            description="O bairro salvo já orienta o foco inicial do mapa dentro de uma área limitada da cidade."
           />
 
           <InfoCard
@@ -165,7 +163,7 @@ export function MapPage() {
           />
 
           {errorMessage && !isOnboardingOpen ? (
-            <section className="rounded-[32px] border border-rose-200 bg-rose-50 p-6">
+            <section className="rounded-4xl border border-rose-200 bg-rose-50 p-6">
               <p className="text-sm font-medium text-rose-700">
                 {errorMessage}
               </p>
@@ -177,7 +175,7 @@ export function MapPage() {
           <MapCanvas selectedNeighborhood={experience?.neighborhood} />
 
           {isLoading ? (
-            <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="rounded-4xl border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-sm text-slate-600">
                 Carregando preferências...
               </p>

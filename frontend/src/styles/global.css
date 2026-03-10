@@ -38,3 +38,34 @@ textarea {
 #root {
   min-height: 100vh;
 }
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #eff6ff;
+  font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+.leaflet-control-zoom {
+  border: 1px solid #dbeafe !important;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08) !important;
+}
+
+.leaflet-control-zoom a {
+  color: #0f172a !important;
+}
+
+.leaflet-tooltip {
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: white;
+  color: #0f172a;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 10px;
+}
+
+.leaflet-tooltip::before {
+  display: none;
+}

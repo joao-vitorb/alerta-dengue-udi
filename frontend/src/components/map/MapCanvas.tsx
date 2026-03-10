@@ -1,23 +1,28 @@
+import {
+  Circle,
+  CircleMarker,
+  MapContainer,
+  TileLayer,
+  Tooltip,
+  ZoomControl,
+} from "react-leaflet";
+import {
+  getNeighborhoodCoordinate,
+  neighborhoodCoordinates,
+  uberlandiaBounds,
+  uberlandiaCenter,
+} from "../../data/neighborhoodCoordinates";
+import { MapController } from "./MapController";
+
 type MapCanvasProps = {
   selectedNeighborhood?: string;
 };
 
-const neighborhoods = [
-  { name: "Tibery", position: "left-[14%] top-[18%]" },
-  { name: "Santa Mônica", position: "left-[36%] top-[26%]" },
-  { name: "Centro", position: "left-[46%] top-[46%]" },
-  { name: "Patrimônio", position: "left-[30%] top-[58%]" },
-  { name: "Luizote", position: "left-[62%] top-[34%]" },
-  { name: "Morumbi", position: "left-[70%] top-[62%]" },
-];
-
-const healthUnits = [
-  { name: "UAI Tibery", position: "left-[18%] top-[36%]" },
-  { name: "UBSF Santa Mônica", position: "left-[42%] top-[34%]" },
-  { name: "UAI Martins", position: "left-[60%] top-[48%]" },
-];
-
 export function MapCanvas({ selectedNeighborhood }: MapCanvasProps) {
+  const selectedCoordinate = getNeighborhoodCoordinate(selectedNeighborhood);
+  const currentCenter = selectedCoordinate?.position ?? uberlandiaCenter;
+  const currentZoom = selectedCoordinate ? 13 : 11;
+
   return (
     <section className="overflow-hidden rounded-4xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
@@ -26,95 +31,121 @@ export function MapCanvas({ selectedNeighborhood }: MapCanvasProps) {
             Visão principal
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-900">
-            Mapa focado em Uberlândia
+            Mapa real focado em Uberlândia
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Pré exibição do mapa
+            O mapa agora usa uma base real da cidade e recentraliza
+            automaticamente quando o bairro salvo estiver entre os pontos
+            mapeados nesta etapa.
           </p>
         </div>
 
         <div className="grid gap-2 text-sm text-slate-700">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            Cidade focada: Uberlândia - MG
+          </div>
           <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
             Bairro atual: {selectedNeighborhood || "Não definido"}
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            Clima e prevenção
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            Unidades próximas
           </div>
         </div>
       </div>
 
       <div className="p-6">
-        <div className="relative h-140 overflow-hidden rounded-[28px] border border-slate-200 bg-[#f9fbfe]">
-          <div className="absolute inset-0 opacity-60 bg-[radial-gradient(rgba(148,163,184,0.28)_1px,transparent_1px)] bg-size-[22px_22px]" />
+        <div className="overflow-hidden rounded-[28px] border border-slate-200">
+          <MapContainer
+            center={uberlandiaCenter}
+            zoom={11}
+            minZoom={11}
+            maxZoom={15}
+            maxBounds={uberlandiaBounds}
+            maxBoundsViscosity={1}
+            zoomControl={false}
+            scrollWheelZoom={false}
+            className="h-140 w-full"
+          >
+            <TileLayer
+              attribution="&copy; OpenStreetMap contributors"
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
 
-          <div className="absolute left-6 top-6 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
+            <MapController
+              center={currentCenter}
+              zoom={currentZoom}
+              maxBounds={uberlandiaBounds}
+            />
+
+            <ZoomControl position="topright" />
+
+            <Circle
+              center={uberlandiaCenter}
+              radius={8500}
+              pathOptions={{
+                color: "#38bdf8",
+                fillColor: "#e0f2fe",
+                fillOpacity: 0.15,
+                weight: 1.5,
+              }}
+            />
+
+            {neighborhoodCoordinates.map((neighborhood) => {
+              const isSelected = neighborhood.name === selectedNeighborhood;
+
+              return (
+                <CircleMarker
+                  key={neighborhood.name}
+                  center={neighborhood.position}
+                  radius={isSelected ? 12 : 8}
+                  pathOptions={{
+                    color: isSelected ? "#0284c7" : "#7dd3fc",
+                    fillColor: isSelected ? "#0284c7" : "#e0f2fe",
+                    fillOpacity: isSelected ? 0.95 : 0.9,
+                    weight: isSelected ? 2 : 1.5,
+                  }}
+                >
+                  <Tooltip
+                    direction="top"
+                    offset={[0, -4]}
+                    opacity={1}
+                    permanent={isSelected}
+                  >
+                    {neighborhood.name}
+                  </Tooltip>
+                </CircleMarker>
+              );
+            })}
+          </MapContainer>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
-              Município monitorado
+              Bairro selecionado
             </p>
-            <p className="mt-2 text-lg font-semibold text-slate-900">
-              Uberlândia - MG
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              {selectedCoordinate
+                ? "O mapa recentraliza automaticamente no ponto aproximado do bairro salvo"
+                : "O bairro salvo ainda não tem ponto aproximado"}
             </p>
           </div>
 
-          {neighborhoods.map((neighborhood) => {
-            const isSelected = neighborhood.name === selectedNeighborhood;
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
+              Sintomas
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              O assistente virtual vai orientar quando procurar avaliação
+              presencial
+            </p>
+          </div>
 
-            return (
-              <div
-                key={neighborhood.name}
-                className={`absolute ${neighborhood.position} rounded-full px-4 py-2 text-sm font-medium ${
-                  isSelected
-                    ? "border border-sky-500 bg-sky-600 text-white shadow-sm"
-                    : "border border-sky-200 bg-sky-100 text-sky-700"
-                }`}
-              >
-                {neighborhood.name}
-              </div>
-            );
-          })}
-
-          {healthUnits.map((unit) => (
-            <div
-              key={unit.name}
-              className={`absolute ${unit.position} rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700`}
-            >
-              {unit.name}
-            </div>
-          ))}
-
-          <div className="absolute bottom-6 left-6 right-6 grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
-                Alerta preventivo
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Chuva e calor exigem vistoria rápida em vasos, ralos, calhas e
-                recipientes
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
-                Sintomas
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                O assistente virtual vai orientar quando procurar avaliação
-                presencial
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
-                Atendimento
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Recomendação de unidades de saúde próximas à localização do
-                usuário
-              </p>
-            </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
+              Atendimento
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Recomendação de unidades de saúde próximas à localização do
+              usuário
+            </p>
           </div>
         </div>
       </div>
