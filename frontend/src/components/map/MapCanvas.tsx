@@ -1,3 +1,7 @@
+type MapCanvasProps = {
+  selectedNeighborhood?: string;
+};
+
 const neighborhoods = [
   { name: "Tibery", position: "left-[14%] top-[18%]" },
   { name: "Santa Mônica", position: "left-[36%] top-[26%]" },
@@ -13,7 +17,7 @@ const healthUnits = [
   { name: "UAI Martins", position: "left-[60%] top-[48%]" },
 ];
 
-export function MapCanvas() {
+export function MapCanvas({ selectedNeighborhood }: MapCanvasProps) {
   return (
     <section className="overflow-hidden rounded-4xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
@@ -25,15 +29,13 @@ export function MapCanvas() {
             Mapa focado em Uberlândia
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Esta estrutura já prepara a tela principal do produto para receber
-            bairros, alertas preventivos e unidades de saúde em uma única
-            experiência central.
+            Pré exibição do mapa
           </p>
         </div>
 
         <div className="grid gap-2 text-sm text-slate-700">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            Bairro destacado
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
+            Bairro atual: {selectedNeighborhood || "Não definido"}
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
             Clima e prevenção
@@ -57,14 +59,22 @@ export function MapCanvas() {
             </p>
           </div>
 
-          {neighborhoods.map((neighborhood) => (
-            <div
-              key={neighborhood.name}
-              className={`absolute ${neighborhood.position} rounded-full border border-sky-200 bg-sky-100 px-4 py-2 text-sm font-medium text-sky-700`}
-            >
-              {neighborhood.name}
-            </div>
-          ))}
+          {neighborhoods.map((neighborhood) => {
+            const isSelected = neighborhood.name === selectedNeighborhood;
+
+            return (
+              <div
+                key={neighborhood.name}
+                className={`absolute ${neighborhood.position} rounded-full px-4 py-2 text-sm font-medium ${
+                  isSelected
+                    ? "border border-sky-500 bg-sky-600 text-white shadow-sm"
+                    : "border border-sky-200 bg-sky-100 text-sky-700"
+                }`}
+              >
+                {neighborhood.name}
+              </div>
+            );
+          })}
 
           {healthUnits.map((unit) => (
             <div
