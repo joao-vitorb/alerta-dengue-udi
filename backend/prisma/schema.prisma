@@ -14,6 +14,36 @@ enum DeviceType {
     MOBILE
 }
 
+enum HealthUnitType {
+    UAI
+    UBS
+    UBSF
+    HOSPITAL
+    CAPS
+    CER
+    COV
+    CMAD
+    CEREST
+    LABORATORY
+    OTHER
+}
+
+enum HealthCareLevel {
+    PRIMARY_CARE
+    URGENT_CARE
+    SPECIALTY_CARE
+    SUPPORT_SERVICE
+}
+
+enum HealthSector {
+    CENTRAL
+    EAST
+    NORTH
+    SOUTH
+    WEST
+    RURAL
+}
+
 model UserPreference {
     id                        String     @id @default(cuid())
     anonymousId               String     @unique
@@ -27,4 +57,29 @@ model UserPreference {
     updatedAt                 DateTime   @updatedAt
 
     @@index([neighborhood])
+}
+
+model HealthUnit {
+    id                String          @id @default(cuid())
+    name              String
+    unitType          HealthUnitType
+    careLevel         HealthCareLevel
+    sector            HealthSector
+    address           String
+    neighborhood      String?
+    phone             String?
+    openingHours      String?
+    latitude          Float?
+    longitude         Float?
+    officialSourceUrl String
+    isActive          Boolean         @default(true)
+    createdAt         DateTime        @default(now())
+    updatedAt         DateTime        @updatedAt
+
+    @@unique([name, address])
+    @@index([name])
+    @@index([neighborhood])
+    @@index([unitType])
+    @@index([careLevel])
+    @@index([sector])
 }
