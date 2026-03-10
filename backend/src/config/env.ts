@@ -10,8 +10,17 @@ function parsePort(value: string | undefined) {
   return parsedPort;
 }
 
+function parseDatabaseUrl(value: string | undefined) {
+  if (!value) {
+    throw new Error("DATABASE_URL is required");
+  }
+
+  return value;
+}
+
 export const env = {
   port: parsePort(process.env.PORT),
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:5173",
   nodeEnv: process.env.NODE_ENV ?? "development",
+  databaseUrl: parseDatabaseUrl(process.env.DATABASE_URL),
 };
