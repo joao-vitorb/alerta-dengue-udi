@@ -1,0 +1,30 @@
+generator client {
+    provider     = "prisma-client"
+    output       = "../src/generated/prisma"
+    moduleFormat = "cjs"
+    runtime      = "nodejs"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+enum DeviceType {
+    DESKTOP
+    MOBILE
+}
+
+model UserPreference {
+    id                        String     @id @default(cuid())
+    anonymousId               String     @unique
+    neighborhood              String
+    email                     String?
+    notificationsEnabled      Boolean    @default(false)
+    emailNotificationsEnabled Boolean    @default(false)
+    pushNotificationsEnabled  Boolean    @default(false)
+    deviceType                DeviceType
+    createdAt                 DateTime   @default(now())
+    updatedAt                 DateTime   @updatedAt
+
+    @@index([neighborhood])
+}
