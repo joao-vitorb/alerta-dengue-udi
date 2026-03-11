@@ -83,3 +83,29 @@ model HealthUnit {
     @@index([careLevel])
     @@index([sector])
 }
+
+model WeatherSnapshot {
+    id                                  String   @id @default(cuid())
+    neighborhood                        String
+    latitude                            Float
+    longitude                           Float
+    source                              String
+    currentTemperature                  Float?
+    currentRain                         Float?
+    currentRelativeHumidity             Float?
+    currentWeatherCode                  Int?
+    todayPrecipitationProbabilityMax    Float?
+    todayPrecipitationSum               Float?
+    todayTemperatureMax                 Float?
+    todayTemperatureMin                 Float?
+    tomorrowPrecipitationProbabilityMax Float?
+    tomorrowPrecipitationSum            Float?
+    pastThreeDaysPrecipitationSum       Float
+    preventionWindowScore               Int
+    rawPayload                          Json
+    fetchedAt                           DateTime @default(now())
+
+    @@index([neighborhood])
+    @@index([fetchedAt])
+    @@index([neighborhood, fetchedAt])
+}

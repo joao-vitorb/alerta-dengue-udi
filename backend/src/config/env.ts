@@ -23,4 +23,7 @@ export const env = {
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:5173",
   nodeEnv: process.env.NODE_ENV ?? "development",
   databaseUrl: parseDatabaseUrl(process.env.DATABASE_URL),
+  weatherApiBaseUrl:
+    process.env.WEATHER_API_BASE_URL ?? "https://api.open-meteo.com/v1",
+  weatherTimezone: process.env.WEATHER_TIMEZONE ?? "America/Sao_Paulo",
 };
