@@ -7,6 +7,7 @@ import { InfoCard } from "../components/ui/InfoCard";
 import { neighborhoodOptions } from "../data/neighborhoodOptions";
 import { useUserPreference } from "../hooks/useUserPreference";
 import type { PreferenceFormValues } from "../types/userPreference";
+import { HealthUnitsPanel } from "../components/health-units/HealthUnitsPanel";
 
 function getInitialFormValues(
   neighborhood: string,
@@ -173,6 +174,8 @@ export function MapPage() {
 
         <div className="space-y-6">
           <MapCanvas selectedNeighborhood={experience?.neighborhood} />
+
+          <HealthUnitsPanel selectedNeighborhood={experience?.neighborhood} />
 
           {isLoading ? (
             <section className="rounded-4xl border border-slate-200 bg-white p-6 shadow-sm">
