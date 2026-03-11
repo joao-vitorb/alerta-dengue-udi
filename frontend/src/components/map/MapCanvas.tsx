@@ -24,7 +24,7 @@ export function MapCanvas({ selectedNeighborhood }: MapCanvasProps) {
   const currentZoom = selectedCoordinate ? 13 : 11;
 
   return (
-    <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-4xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">
@@ -51,7 +51,7 @@ export function MapCanvas({ selectedNeighborhood }: MapCanvasProps) {
       </div>
 
       <div className="p-6">
-        <div className="h-[560px] overflow-hidden rounded-[28px] border border-slate-200">
+        <div className="h-140 overflow-hidden rounded-[28px] border border-slate-200">
           <MapContainer
             center={uberlandiaCenter}
             zoom={11}
