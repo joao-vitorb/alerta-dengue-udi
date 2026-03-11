@@ -8,6 +8,7 @@ import { neighborhoodOptions } from "../data/neighborhoodOptions";
 import { useUserPreference } from "../hooks/useUserPreference";
 import type { PreferenceFormValues } from "../types/userPreference";
 import { HealthUnitsPanel } from "../components/health-units/HealthUnitsPanel";
+import { PreventiveAlertsPanel } from "../components/preventive-alerts/PreventiveAlertsPanel";
 
 function getInitialFormValues(
   neighborhood: string,
@@ -174,6 +175,10 @@ export function MapPage() {
 
         <div className="space-y-6">
           <MapCanvas selectedNeighborhood={experience?.neighborhood} />
+
+          <PreventiveAlertsPanel
+            selectedNeighborhood={experience?.neighborhood}
+          />
 
           <HealthUnitsPanel selectedNeighborhood={experience?.neighborhood} />
 
