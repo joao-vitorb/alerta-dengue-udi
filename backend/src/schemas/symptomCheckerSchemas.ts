@@ -1,23 +1,20 @@
 import { z } from "zod";
 
-export const symptomCheckerRequestSchema = z.object({
-  fever: z.boolean(),
-  headache: z.boolean(),
-  painBehindEyes: z.boolean(),
-  bodyAche: z.boolean(),
-  jointPain: z.boolean(),
-  nausea: z.boolean(),
-  vomiting: z.boolean(),
-  rash: z.boolean(),
-  abdominalPain: z.boolean(),
-  persistentVomiting: z.boolean(),
-  bleeding: z.boolean(),
-  dizzinessOrFainting: z.boolean(),
-  breathingDifficulty: z.boolean(),
-  extremeTirednessOrIrritability: z.boolean(),
-  symptomDays: z.number().int().min(0).max(30).optional(),
+export const symptomCheckerBodySchema = z.object({
+  fever: z.boolean().default(false),
+  headache: z.boolean().default(false),
+  painBehindEyes: z.boolean().default(false),
+  bodyAches: z.boolean().default(false),
+  jointPain: z.boolean().default(false),
+  nausea: z.boolean().default(false),
+  vomiting: z.boolean().default(false),
+  rash: z.boolean().default(false),
+  fatigue: z.boolean().default(false),
+  abdominalPain: z.boolean().default(false),
+  persistentVomiting: z.boolean().default(false),
+  bleedingSigns: z.boolean().default(false),
+  drowsiness: z.boolean().default(false),
+  dehydrationSigns: z.boolean().default(false),
 });
 
-export type SymptomCheckerRequestInput = z.infer<
-  typeof symptomCheckerRequestSchema
->;
+export type SymptomCheckerInput = z.infer<typeof symptomCheckerBodySchema>;
