@@ -1,15 +1,15 @@
 import type { NextFunction, Request, Response } from "express";
 import { AppError } from "../errors/AppError";
-import { symptomCheckerRequestSchema } from "../schemas/symptomCheckerSchemas";
-import { evaluateSymptoms } from "../services/symptomCheckerService";
+import { symptomCheckerBodySchema } from "../schemas/symptomCheckerSchemas";
+import { checkSymptoms } from "../services/symptomCheckerService";
 import { formatZodErrors } from "../utils/formatZodErrors";
 
-export async function evaluateSymptomsController(
+export function checkSymptomsController(
   request: Request,
   response: Response,
   next: NextFunction,
 ) {
-  const parsedBody = symptomCheckerRequestSchema.safeParse(request.body);
+  const parsedBody = symptomCheckerBodySchema.safeParse(request.body);
 
   if (!parsedBody.success) {
     return next(
@@ -22,7 +22,7 @@ export async function evaluateSymptomsController(
   }
 
   try {
-    const result = evaluateSymptoms(parsedBody.data);
+    const result = checkSymptoms(parsedBody.data);
 
     return response.status(200).json(result);
   } catch (error) {

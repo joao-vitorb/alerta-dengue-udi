@@ -1,173 +1,131 @@
-import type { SymptomCheckerRequestInput } from "../schemas/symptomCheckerSchemas";
+import type { SymptomCheckerInput } from "../schemas/symptomCheckerSchemas";
 
-type SymptomCheckerSeverity = "LOW" | "MEDIUM" | "HIGH";
-
-type SymptomCheckerCategory =
-  | "LOW_COMPATIBILITY"
+type SymptomCheckerLevel =
+  | "FEW_COMPATIBLE_SIGNS"
   | "COMPATIBLE_SYMPTOMS"
   | "WARNING_SIGNS";
 
-type SymptomCheckerAdviceLevel =
-  | "SELF_MONITORING"
-  | "MEDICAL_EVALUATION"
-  | "IMMEDIATE_CARE";
+type RecommendedCareLevel = "PRIMARY_CARE" | "URGENT_CARE";
 
 type SymptomCheckerResult = {
-  category: SymptomCheckerCategory;
-  severity: SymptomCheckerSeverity;
-  adviceLevel: SymptomCheckerAdviceLevel;
+  classification: SymptomCheckerLevel;
   headline: string;
-  summary: string;
+  message: string;
   recommendation: string;
-  warningSignsDetected: string[];
-  compatibleSymptomsDetected: string[];
-  score: {
-    compatibilityScore: number;
-    warningSignScore: number;
-  };
+  recommendedCareLevel: RecommendedCareLevel;
+  compatibleSymptomsCount: number;
+  warningSignsCount: number;
+  detectedSymptoms: string[];
   disclaimer: string;
 };
 
-const disclaimerText =
-  "Este resultado é apenas educativo e não substitui avaliação médica, exames ou diagnóstico profissional.";
+const symptomLabels = {
+  fever: "Febre",
+  headache: "Dor de cabeça",
+  painBehindEyes: "Dor atrás dos olhos",
+  bodyAches: "Dor no corpo",
+  jointPain: "Dor nas articulações",
+  nausea: "Náusea",
+  vomiting: "Vômito",
+  rash: "Manchas na pele",
+  fatigue: "Cansaço",
+  abdominalPain: "Dor abdominal",
+  persistentVomiting: "Vômito persistente",
+  bleedingSigns: "Sinais de sangramento",
+  drowsiness: "Sonolência ou prostração",
+  dehydrationSigns: "Sinais de desidratação",
+} as const;
 
-function getCompatibleSymptoms(input: SymptomCheckerRequestInput) {
-  const compatibleSymptoms: string[] = [];
+const compatibleSymptomsKeys: Array<keyof SymptomCheckerInput> = [
+  "fever",
+  "headache",
+  "painBehindEyes",
+  "bodyAches",
+  "jointPain",
+  "nausea",
+  "vomiting",
+  "rash",
+  "fatigue",
+];
 
-  if (input.fever) {
-    compatibleSymptoms.push("Febre");
-  }
+const warningSignsKeys: Array<keyof SymptomCheckerInput> = [
+  "abdominalPain",
+  "persistentVomiting",
+  "bleedingSigns",
+  "drowsiness",
+  "dehydrationSigns",
+];
 
-  if (input.headache) {
-    compatibleSymptoms.push("Dor de cabeça");
-  }
-
-  if (input.painBehindEyes) {
-    compatibleSymptoms.push("Dor atrás dos olhos");
-  }
-
-  if (input.bodyAche) {
-    compatibleSymptoms.push("Dor no corpo");
-  }
-
-  if (input.jointPain) {
-    compatibleSymptoms.push("Dor nas articulações");
-  }
-
-  if (input.nausea) {
-    compatibleSymptoms.push("Náusea");
-  }
-
-  if (input.vomiting) {
-    compatibleSymptoms.push("Vômito");
-  }
-
-  if (input.rash) {
-    compatibleSymptoms.push("Manchas vermelhas na pele");
-  }
-
-  return compatibleSymptoms;
+function countTrueFlags(
+  input: SymptomCheckerInput,
+  keys: Array<keyof SymptomCheckerInput>,
+) {
+  return keys.reduce((total, key) => total + (input[key] ? 1 : 0), 0);
 }
 
-function getWarningSigns(input: SymptomCheckerRequestInput) {
-  const warningSigns: string[] = [];
-
-  if (input.abdominalPain) {
-    warningSigns.push("Dor abdominal");
-  }
-
-  if (input.persistentVomiting) {
-    warningSigns.push("Vômitos persistentes");
-  }
-
-  if (input.bleeding) {
-    warningSigns.push("Sangramento");
-  }
-
-  if (input.dizzinessOrFainting) {
-    warningSigns.push("Tontura ou desmaio");
-  }
-
-  if (input.breathingDifficulty) {
-    warningSigns.push("Dificuldade para respirar");
-  }
-
-  if (input.extremeTirednessOrIrritability) {
-    warningSigns.push("Cansaço intenso ou irritabilidade");
-  }
-
-  return warningSigns;
+function getDetectedSymptoms(input: SymptomCheckerInput) {
+  return Object.entries(input)
+    .filter(([, value]) => value)
+    .map(([key]) => symptomLabels[key as keyof typeof symptomLabels]);
 }
 
-export function evaluateSymptoms(
-  input: SymptomCheckerRequestInput,
+export function checkSymptoms(
+  input: SymptomCheckerInput,
 ): SymptomCheckerResult {
-  const compatibleSymptomsDetected = getCompatibleSymptoms(input);
-  const warningSignsDetected = getWarningSigns(input);
+  const compatibleSymptomsCount = countTrueFlags(input, compatibleSymptomsKeys);
+  const warningSignsCount = countTrueFlags(input, warningSignsKeys);
+  const detectedSymptoms = getDetectedSymptoms(input);
 
-  const compatibilityScore = compatibleSymptomsDetected.length;
-  const warningSignScore = warningSignsDetected.length;
-
-  if (warningSignScore > 0) {
+  if (warningSignsCount >= 1) {
     return {
-      category: "WARNING_SIGNS",
-      severity: "HIGH",
-      adviceLevel: "IMMEDIATE_CARE",
-      headline: "Sinais de alerta detectados",
-      summary:
-        "Os sintomas informados incluem sinais que merecem avaliação presencial rápida.",
+      classification: "WARNING_SIGNS",
+      headline: "Sinais de alerta identificados",
+      message:
+        "Foram informados sintomas que exigem atenção imediata e avaliação presencial.",
       recommendation:
-        "Procure atendimento imediatamente, principalmente se os sintomas estiverem piorando ou se você se sentir mais fraco do que o normal.",
-      warningSignsDetected,
-      compatibleSymptomsDetected,
-      score: {
-        compatibilityScore,
-        warningSignScore,
-      },
-      disclaimer: disclaimerText,
+        "Procure atendimento imediatamente em uma unidade de urgência. Não espere os sintomas piorarem.",
+      recommendedCareLevel: "URGENT_CARE",
+      compatibleSymptomsCount,
+      warningSignsCount,
+      detectedSymptoms,
+      disclaimer:
+        "Este checador é apenas educativo e não substitui avaliação médica nem diagnóstico profissional.",
     };
   }
 
-  const hasStrongCompatibilityPattern =
-    input.fever &&
-    compatibilityScore >= 4 &&
-    (input.bodyAche || input.jointPain || input.painBehindEyes);
+  const hasStrongCompatibility =
+    (input.fever && compatibleSymptomsCount >= 4) ||
+    compatibleSymptomsCount >= 5;
 
-  if (hasStrongCompatibilityPattern) {
+  if (hasStrongCompatibility) {
     return {
-      category: "COMPATIBLE_SYMPTOMS",
-      severity: "MEDIUM",
-      adviceLevel: "MEDICAL_EVALUATION",
+      classification: "COMPATIBLE_SYMPTOMS",
       headline: "Sintomas compatíveis com dengue",
-      summary:
-        "O conjunto de sintomas informado é compatível com um quadro que merece avaliação profissional.",
+      message:
+        "Os sinais informados merecem avaliação de um profissional de saúde, principalmente se houver piora ou persistência.",
       recommendation:
-        "Busque avaliação em uma unidade de saúde, principalmente se os sintomas persistirem, piorarem ou surgirem sinais de alerta.",
-      warningSignsDetected,
-      compatibleSymptomsDetected,
-      score: {
-        compatibilityScore,
-        warningSignScore,
-      },
-      disclaimer: disclaimerText,
+        "Procure avaliação presencial em uma unidade de atenção primária ou serviço indicado pela rede de saúde.",
+      recommendedCareLevel: "PRIMARY_CARE",
+      compatibleSymptomsCount,
+      warningSignsCount,
+      detectedSymptoms,
+      disclaimer:
+        "Este checador é apenas educativo e não substitui avaliação médica nem diagnóstico profissional.",
     };
   }
 
   return {
-    category: "LOW_COMPATIBILITY",
-    severity: "LOW",
-    adviceLevel: "SELF_MONITORING",
+    classification: "FEW_COMPATIBLE_SIGNS",
     headline: "Poucos sinais compatíveis no momento",
-    summary:
-      "Os sintomas informados não formam um padrão forte neste checador educativo.",
+    message:
+      "Os sintomas informados não indicam, por si só, uma compatibilidade forte, mas a observação continua importante.",
     recommendation:
-      "Continue observando a evolução dos sintomas e procure avaliação se houver piora, persistência ou aparecimento de sinais de alerta.",
-    warningSignsDetected,
-    compatibleSymptomsDetected,
-    score: {
-      compatibilityScore,
-      warningSignScore,
-    },
-    disclaimer: disclaimerText,
+      "Monitore a evolução dos sintomas e procure avaliação se houver piora, febre persistente ou surgimento de sinais de alerta.",
+    recommendedCareLevel: "PRIMARY_CARE",
+    compatibleSymptomsCount,
+    warningSignsCount,
+    detectedSymptoms,
+    disclaimer:
+      "Este checador é apenas educativo e não substitui avaliação médica nem diagnóstico profissional.",
   };
 }

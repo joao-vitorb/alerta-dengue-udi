@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { evaluateSymptomsController } from "../controllers/symptomCheckerController";
+import { checkSymptomsController } from "../controllers/symptomCheckerController";
 
 const symptomCheckerRouter = Router();
 
-symptomCheckerRouter.post("/", evaluateSymptomsController);
+symptomCheckerRouter.post("/", checkSymptomsController);
 
 export { symptomCheckerRouter };
