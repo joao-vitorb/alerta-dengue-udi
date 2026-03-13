@@ -45,16 +45,17 @@ enum HealthSector {
 }
 
 model UserPreference {
-    id                        String     @id @default(cuid())
-    anonymousId               String     @unique
+    id                        String            @id @default(cuid())
+    anonymousId               String            @unique
     neighborhood              String
     email                     String?
-    notificationsEnabled      Boolean    @default(false)
-    emailNotificationsEnabled Boolean    @default(false)
-    pushNotificationsEnabled  Boolean    @default(false)
+    notificationsEnabled      Boolean           @default(false)
+    emailNotificationsEnabled Boolean           @default(false)
+    pushNotificationsEnabled  Boolean           @default(false)
     deviceType                DeviceType
-    createdAt                 DateTime   @default(now())
-    updatedAt                 DateTime   @updatedAt
+    createdAt                 DateTime          @default(now())
+    updatedAt                 DateTime          @updatedAt
+    pushSubscription          PushSubscription?
 
     @@index([neighborhood])
 }
@@ -108,4 +109,18 @@ model WeatherSnapshot {
     @@index([neighborhood])
     @@index([fetchedAt])
     @@index([neighborhood, fetchedAt])
+}
+
+model PushSubscription {
+    id             String         @id @default(cuid())
+    anonymousId    String         @unique
+    endpoint       String         @unique
+    p256dh         String
+    auth           String
+    userAgent      String?
+    createdAt      DateTime       @default(now())
+    updatedAt      DateTime       @updatedAt
+    userPreference UserPreference @relation(fields: [anonymousId], references: [anonymousId], onDelete: Cascade)
+
+    @@index([createdAt])
 }

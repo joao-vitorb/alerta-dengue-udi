@@ -10,6 +10,7 @@ import type { PreferenceFormValues } from "../types/userPreference";
 import { HealthUnitsPanel } from "../components/health-units/HealthUnitsPanel";
 import { PreventiveAlertsPanel } from "../components/preventive-alerts/PreventiveAlertsPanel";
 import { SymptomCheckerPanel } from "../components/symptom-checker/SymptomCheckerPanel";
+import { NotificationSetupPanel } from "../components/notifications/NotificationSetupPanel";
 
 
 function getInitialFormValues(
@@ -181,6 +182,8 @@ export function MapPage() {
           <PreventiveAlertsPanel
             selectedNeighborhood={experience?.neighborhood}
           />
+
+          <NotificationSetupPanel experience={experience} />
 
           <SymptomCheckerPanel
             selectedNeighborhood={experience?.neighborhood}
