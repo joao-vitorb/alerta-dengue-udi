@@ -44,8 +44,8 @@ export const healthUnitsSeedData: HealthUnitSeedItem[] = [
     neighborhood: "Tibery",
     phone: "(34) 3227-8060",
     openingHours: "Pronto Atendimento 24 horas",
-    latitude: null,
-    longitude: null,
+    latitude: -18.8895,
+    longitude: -48.251,
     officialSourceUrl:
       "https://www.uberlandia.mg.gov.br/prefeitura/secretarias/saude/unidades-de-atendimento-em-saude/setor-leste/",
     isActive: true,
@@ -60,8 +60,8 @@ export const healthUnitsSeedData: HealthUnitSeedItem[] = [
     phone: "(34) 3227-8060",
     openingHours:
       "Funcionamento Ambulatorial e Especialidades: das 7h às 22h de segunda a sexta",
-    latitude: null,
-    longitude: null,
+    latitude: -18.8895,
+    longitude: -48.251,
     officialSourceUrl:
       "https://www.uberlandia.mg.gov.br/prefeitura/secretarias/saude/unidades-de-atendimento-em-saude/setor-leste/",
     isActive: true,
@@ -75,8 +75,8 @@ export const healthUnitsSeedData: HealthUnitSeedItem[] = [
     neighborhood: "Custódio Pereira",
     phone: "(34) 3232-4757",
     openingHours: "7h às 19h de segunda a sexta",
-    latitude: null,
-    longitude: null,
+    latitude: -18.8835,
+    longitude: -48.233,
     officialSourceUrl:
       "https://www.uberlandia.mg.gov.br/prefeitura/secretarias/saude/unidades-de-atendimento-em-saude/setor-leste/",
     isActive: true,
@@ -90,8 +90,8 @@ export const healthUnitsSeedData: HealthUnitSeedItem[] = [
     neighborhood: "Morumbi",
     phone: "(34) 3226-3325 / 3211-4096 / 3211-6974",
     openingHours: "Pronto Atendimento 24 horas",
-    latitude: null,
-    longitude: null,
+    latitude: -18.952,
+    longitude: -48.244,
     officialSourceUrl:
       "https://www.uberlandia.mg.gov.br/prefeitura/secretarias/saude/unidades-de-atendimento-em-saude/setor-leste/",
     isActive: true,
@@ -105,8 +105,8 @@ export const healthUnitsSeedData: HealthUnitSeedItem[] = [
     neighborhood: "Martins",
     phone: "(34) 3215-8331 / 3236-7426",
     openingHours: "Pronto Atendimento 24 horas",
-    latitude: null,
-    longitude: null,
+    latitude: -18.9127,
+    longitude: -48.2875,
     officialSourceUrl:
       "https://www.uberlandia.mg.gov.br/prefeitura/secretarias/saude/unidades-de-atendimento-em-saude/setor-central/",
     isActive: true,
@@ -121,8 +121,8 @@ export const healthUnitsSeedData: HealthUnitSeedItem[] = [
     phone: "(34) 3215-8331 / 3236-7426",
     openingHours:
       "Funcionamento Ambulatorial e Especialidades: segunda a sexta-feira, das 7h às 22h",
-    latitude: null,
-    longitude: null,
+    latitude: -18.9127,
+    longitude: -48.2875,
     officialSourceUrl:
       "https://www.uberlandia.mg.gov.br/prefeitura/secretarias/saude/unidades-de-atendimento-em-saude/setor-central/",
     isActive: true,
@@ -136,8 +136,8 @@ export const healthUnitsSeedData: HealthUnitSeedItem[] = [
     neighborhood: "Brasil",
     phone: "(34) 3232-3722",
     openingHours: "Segunda a sexta-feira, das 7h às 22h",
-    latitude: null,
-    longitude: null,
+    latitude: -18.9088,
+    longitude: -48.2668,
     officialSourceUrl:
       "https://www.uberlandia.mg.gov.br/prefeitura/secretarias/saude/unidades-de-atendimento-em-saude/setor-central/",
     isActive: true,
@@ -151,8 +151,8 @@ export const healthUnitsSeedData: HealthUnitSeedItem[] = [
     neighborhood: "Bom Jesus",
     phone: "(34) 3236-2408",
     openingHours: "Segunda a sexta-feira, das 7h às 17h",
-    latitude: null,
-    longitude: null,
+    latitude: -18.9055,
+    longitude: -48.2725,
     officialSourceUrl:
       "https://www.uberlandia.mg.gov.br/prefeitura/secretarias/saude/unidades-de-atendimento-em-saude/setor-central/",
     isActive: true,
@@ -166,8 +166,8 @@ export const healthUnitsSeedData: HealthUnitSeedItem[] = [
     neighborhood: "Luizote de Freitas",
     phone: "(34) 3223-8005 / 3223-8043",
     openingHours: "Pronto Atendimento 24 horas",
-    latitude: null,
-    longitude: null,
+    latitude: -18.9062,
+    longitude: -48.3165,
     officialSourceUrl:
       "https://www.uberlandia.mg.gov.br/prefeitura/secretarias/saude/unidades-de-atendimento-em-saude/setor-oeste/",
     isActive: true,
@@ -182,8 +182,8 @@ export const healthUnitsSeedData: HealthUnitSeedItem[] = [
     phone: "(34) 3223-8005 / 3223-8043",
     openingHours:
       "Funcionamento Ambulatorial e Especialidades: das 7h às 22h de segunda a sexta",
-    latitude: null,
-    longitude: null,
+    latitude: -18.9062,
+    longitude: -48.3165,
     officialSourceUrl:
       "https://www.uberlandia.mg.gov.br/prefeitura/secretarias/saude/unidades-de-atendimento-em-saude/setor-oeste/",
     isActive: true,
@@ -197,8 +197,8 @@ export const healthUnitsSeedData: HealthUnitSeedItem[] = [
     neighborhood: "Planalto",
     phone: "(34) 3227-8010 / 3232-5575",
     openingHours: "Pronto Atendimento 24 horas",
-    latitude: null,
-    longitude: null,
+    latitude: -18.9035,
+    longitude: -48.3325,
     officialSourceUrl:
       "https://www.uberlandia.mg.gov.br/prefeitura/secretarias/saude/unidades-de-atendimento-em-saude/setor-oeste/",
     isActive: true,
@@ -212,8 +212,8 @@ export const healthUnitsSeedData: HealthUnitSeedItem[] = [
     neighborhood: "Dona Zulmira",
     phone: "(34) 3238-1455",
     openingHours: "7h às 19h de segunda a sexta",
-    latitude: null,
-    longitude: null,
+    latitude: -18.9055,
+    longitude: -48.3045,
     officialSourceUrl:
       "https://www.uberlandia.mg.gov.br/prefeitura/secretarias/saude/unidades-de-atendimento-em-saude/setor-oeste/",
     isActive: true,
