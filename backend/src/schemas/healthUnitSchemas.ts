@@ -38,8 +38,19 @@ export const healthUnitQuerySchema = z.object({
   neighborhood: z.string().trim().min(2).max(120).optional(),
 });
 
+export const recommendedHealthUnitQuerySchema = z.object({
+  latitude: z.coerce.number().min(-90).max(90).optional(),
+  longitude: z.coerce.number().min(-180).max(180).optional(),
+  careLevel: healthCareLevelSchema.optional(),
+  neighborhood: z.string().trim().min(2).max(120).optional(),
+  limit: z.coerce.number().int().min(1).max(10).default(3),
+});
+
 export const healthUnitIdParamSchema = z.object({
   healthUnitId: z.string().trim().min(1),
 });
 
 export type HealthUnitQueryInput = z.infer<typeof healthUnitQuerySchema>;
+export type RecommendedHealthUnitQueryInput = z.infer<
+  typeof recommendedHealthUnitQuerySchema
+>;
