@@ -2,10 +2,13 @@ import {
   Circle,
   CircleMarker,
   MapContainer,
+  Marker,
+  Popup,
   TileLayer,
   Tooltip,
   ZoomControl,
 } from "react-leaflet";
+import type { HealthUnit } from "../../types/healthUnit";
 import {
   getNeighborhoodCoordinate,
   neighborhoodCoordinates,
@@ -16,9 +19,26 @@ import { MapController } from "./MapController";
 
 type MapCanvasProps = {
   selectedNeighborhood?: string;
+  recommendedUnits?: HealthUnit[];
+  userLocation?: {
+    latitude: number;
+    longitude: number;
+  } | null;
 };
 
-export function MapCanvas({ selectedNeighborhood }: MapCanvasProps) {
+function formatDistance(distanceKm?: number | null) {
+  if (distanceKm === null || distanceKm === undefined) {
+    return "Distância indisponível";
+  }
+
+  return `${distanceKm.toFixed(2)} km`;
+}
+
+export function MapCanvas({
+  selectedNeighborhood,
+  recommendedUnits = [],
+  userLocation = null,
+}: MapCanvasProps) {
   const selectedCoordinate = getNeighborhoodCoordinate(selectedNeighborhood);
   const currentCenter = selectedCoordinate?.position ?? uberlandiaCenter;
   const currentZoom = selectedCoordinate ? 13 : 11;
@@ -113,6 +133,52 @@ export function MapCanvas({ selectedNeighborhood }: MapCanvasProps) {
                 </CircleMarker>
               );
             })}
+
+            {userLocation ? (
+              <CircleMarker
+                center={[userLocation.latitude, userLocation.longitude]}
+                radius={10}
+                pathOptions={{
+                  color: "#0f172a",
+                  fillColor: "#0f172a",
+                  fillOpacity: 0.95,
+                  weight: 2,
+                }}
+              >
+                <Tooltip direction="top" offset={[0, -4]} opacity={1} permanent>
+                  Sua localização
+                </Tooltip>
+              </CircleMarker>
+            ) : null}
+
+            {recommendedUnits
+              .filter(
+                (unit) => unit.latitude !== null && unit.longitude !== null,
+              )
+              .map((unit) => (
+                <Marker
+                  key={unit.id}
+                  position={[unit.latitude as number, unit.longitude as number]}
+                >
+                  <Popup>
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {unit.name}
+                      </p>
+                      <p className="text-sm text-slate-700">
+                        {unit.unitType} • {unit.careLevel}
+                      </p>
+                      <p className="text-sm text-slate-700">
+                        Bairro: {unit.neighborhood ?? "Não informado"}
+                      </p>
+                      <p className="text-sm text-slate-700">{unit.address}</p>
+                      <p className="text-sm text-slate-700">
+                        {formatDistance(unit.distanceKm)}
+                      </p>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
           </MapContainer>
         </div>
 

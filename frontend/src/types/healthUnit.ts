@@ -41,11 +41,23 @@ export type HealthUnit = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  distanceKm?: number | null;
 };
 
 export type HealthUnitsResponse = {
   items: HealthUnit[];
   total: number;
+};
+
+export type RecommendedHealthUnitsResponse = {
+  items: HealthUnit[];
+  total: number;
+  context: {
+    latitude: number | null;
+    longitude: number | null;
+    careLevel: HealthCareLevel | null;
+    neighborhood: string | null;
+  };
 };
 
 export type HealthUnitsFilterState = {

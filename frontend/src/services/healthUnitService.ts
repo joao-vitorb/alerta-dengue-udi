@@ -1,6 +1,10 @@
 import { env } from "../config/env";
 import { ApiError } from "../errors/ApiError";
-import type { HealthUnitsResponse } from "../types/healthUnit";
+import type {
+  HealthCareLevel,
+  HealthUnitsResponse,
+  RecommendedHealthUnitsResponse,
+} from "../types/healthUnit";
 
 const apiBaseUrl = `${env.apiUrl}/api`;
 
@@ -22,4 +26,40 @@ export async function listHealthUnits() {
   const response = await fetch(`${apiBaseUrl}/health-units`);
 
   return parseResponse<HealthUnitsResponse>(response);
+}
+
+export async function listRecommendedHealthUnits(input: {
+  neighborhood?: string;
+  careLevel?: HealthCareLevel;
+  latitude?: number;
+  longitude?: number;
+  limit?: number;
+}) {
+  const query = new URLSearchParams();
+
+  if (input.neighborhood) {
+    query.set("neighborhood", input.neighborhood);
+  }
+
+  if (input.careLevel) {
+    query.set("careLevel", input.careLevel);
+  }
+
+  if (input.latitude !== undefined) {
+    query.set("latitude", String(input.latitude));
+  }
+
+  if (input.longitude !== undefined) {
+    query.set("longitude", String(input.longitude));
+  }
+
+  if (input.limit !== undefined) {
+    query.set("limit", String(input.limit));
+  }
+
+  const response = await fetch(
+    `${apiBaseUrl}/health-units/recommended?${query.toString()}`,
+  );
+
+  return parseResponse<RecommendedHealthUnitsResponse>(response);
 }

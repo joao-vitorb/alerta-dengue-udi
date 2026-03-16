@@ -1,17 +1,20 @@
 import { useMemo } from "react";
+import { HealthUnitsPanel } from "../components/health-units/HealthUnitsPanel";
 import { AppShell } from "../components/layout/AppShell";
 import { MapCanvas } from "../components/map/MapCanvas";
+import { NotificationSetupPanel } from "../components/notifications/NotificationSetupPanel";
 import { OnboardingModal } from "../components/onboarding/OnboardingModal";
+import { PreventiveAlertsPanel } from "../components/preventive-alerts/PreventiveAlertsPanel";
 import { SettingsPanel } from "../components/settings/SettingsPanel";
+import { SymptomCheckerPanel } from "../components/symptom-checker/SymptomCheckerPanel";
 import { InfoCard } from "../components/ui/InfoCard";
 import { neighborhoodOptions } from "../data/neighborhoodOptions";
+import { useBrowserLocation } from "../hooks/useBrowserLocation";
 import { useUserPreference } from "../hooks/useUserPreference";
+import { listRecommendedHealthUnits } from "../services/healthUnitService";
+import { useEffect, useState } from "react";
+import type { HealthUnit } from "../types/healthUnit";
 import type { PreferenceFormValues } from "../types/userPreference";
-import { HealthUnitsPanel } from "../components/health-units/HealthUnitsPanel";
-import { PreventiveAlertsPanel } from "../components/preventive-alerts/PreventiveAlertsPanel";
-import { SymptomCheckerPanel } from "../components/symptom-checker/SymptomCheckerPanel";
-import { NotificationSetupPanel } from "../components/notifications/NotificationSetupPanel";
-
 
 function getInitialFormValues(
   neighborhood: string,
@@ -42,6 +45,53 @@ export function MapPage() {
     reopenOnboarding,
     closeOnboarding,
   } = useUserPreference();
+
+  const { location, isLoadingLocation, locationErrorMessage, requestLocation } =
+    useBrowserLocation();
+
+  const [recommendedMapUnits, setRecommendedMapUnits] = useState<HealthUnit[]>(
+    [],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadRecommendedUnits() {
+      if (!experience?.neighborhood) {
+        if (isMounted) {
+          setRecommendedMapUnits([]);
+        }
+        return;
+      }
+
+      try {
+        const response = await listRecommendedHealthUnits({
+          neighborhood: experience.neighborhood,
+          latitude: location?.latitude,
+          longitude: location?.longitude,
+          limit: 3,
+        });
+
+        if (!isMounted) {
+          return;
+        }
+
+        setRecommendedMapUnits(response.items);
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+
+        setRecommendedMapUnits([]);
+      }
+    }
+
+    void loadRecommendedUnits();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [experience?.neighborhood, location?.latitude, location?.longitude]);
 
   const onboardingInitialValues = useMemo(() => {
     if (!experience) {
@@ -137,13 +187,32 @@ export function MapPage() {
               experiência mínima com o backend sem exigir conta de usuário.
             </p>
 
-            <button
-              type="button"
-              onClick={reopenOnboarding}
-              className="mt-6 inline-flex rounded-full border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-medium text-sky-700 transition hover:bg-sky-100"
-            >
-              Reabrir onboarding
-            </button>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={reopenOnboarding}
+                className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-medium text-sky-700 transition hover:bg-sky-100"
+              >
+                Reabrir onboarding
+              </button>
+
+              <button
+                type="button"
+                onClick={requestLocation}
+                disabled={isLoadingLocation}
+                className="inline-flex rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isLoadingLocation
+                  ? "Localizando..."
+                  : "Usar minha localização"}
+              </button>
+            </div>
+
+            {locationErrorMessage ? (
+              <p className="mt-4 text-sm text-rose-700">
+                {locationErrorMessage}
+              </p>
+            ) : null}
           </section>
 
           <InfoCard
@@ -177,7 +246,11 @@ export function MapPage() {
         </aside>
 
         <div className="space-y-6">
-          <MapCanvas selectedNeighborhood={experience?.neighborhood} />
+          <MapCanvas
+            selectedNeighborhood={experience?.neighborhood}
+            recommendedUnits={recommendedMapUnits}
+            userLocation={location}
+          />
 
           <PreventiveAlertsPanel
             selectedNeighborhood={experience?.neighborhood}
