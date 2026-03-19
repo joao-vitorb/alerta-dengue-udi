@@ -11,6 +11,7 @@ type OpenMeteoForecastResponse = {
     rain?: number;
     relative_humidity_2m?: number;
     weather_code?: number;
+    wind_speed_10m?: number;
   };
   daily?: {
     time: string[];
@@ -28,7 +29,8 @@ export async function fetchOpenMeteoForecast(
   const params = new URLSearchParams({
     latitude: String(latitude),
     longitude: String(longitude),
-    current: "temperature_2m,rain,relative_humidity_2m,weather_code",
+    current:
+      "temperature_2m,rain,relative_humidity_2m,weather_code,wind_speed_10m",
     daily:
       "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max",
     timezone: env.weatherTimezone,

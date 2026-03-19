@@ -1,8 +1,12 @@
+import L from "leaflet";
+import { icon } from "@fortawesome/fontawesome-svg-core";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   Circle,
   CircleMarker,
   MapContainer,
   Marker,
+  Polygon,
   Popup,
   TileLayer,
   Tooltip,
@@ -15,6 +19,8 @@ import {
   uberlandiaBounds,
   uberlandiaCenter,
 } from "../../data/neighborhoodCoordinates";
+import { getNeighborhoodBoundary } from "../../data/neighborhoodBoundaries";
+import { faHospital, faMapLocationDot } from "../../lib/icons";
 import { MapController } from "./MapController";
 
 type MapCanvasProps = {
@@ -26,12 +32,30 @@ type MapCanvasProps = {
   } | null;
 };
 
+const hospitalMarkerSvg = icon(faHospital, {
+  styles: {
+    color: "#ffffff",
+  },
+}).html.join("");
+
+const healthUnitIcon = L.divIcon({
+  className: "",
+  html: `
+    <div style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:999px;background:#d62828;border:2px solid #9f1d1d;">
+      ${hospitalMarkerSvg}
+    </div>
+  `,
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+  popupAnchor: [0, -15],
+});
+
 function formatDistance(distanceKm?: number | null) {
   if (distanceKm === null || distanceKm === undefined) {
     return "Distância indisponível";
   }
 
-  return `${distanceKm.toFixed(2)} km`;
+  return `~${Math.round(distanceKm)} km`;
 }
 
 export function MapCanvas({
@@ -40,180 +64,143 @@ export function MapCanvas({
   userLocation = null,
 }: MapCanvasProps) {
   const selectedCoordinate = getNeighborhoodCoordinate(selectedNeighborhood);
+  const selectedBoundary = getNeighborhoodBoundary(selectedNeighborhood);
   const currentCenter = selectedCoordinate?.position ?? uberlandiaCenter;
   const currentZoom = selectedCoordinate ? 13 : 11;
 
   return (
-    <section className="overflow-hidden rounded-4xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">
-            Visão principal
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-900">
-            Mapa real focado em Uberlândia
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            O mapa agora usa uma base real da cidade e recentraliza
-            automaticamente quando o bairro salvo estiver entre os pontos
-            mapeados nesta etapa.
-          </p>
-        </div>
+    <section className="rounded-[18px] border border-[#d8dcd8] bg-white p-4">
+      <div className="flex items-center gap-2">
+        <span className="text-[#10a672]">
+          <FontAwesomeIcon icon={faMapLocationDot} />
+        </span>
 
-        <div className="grid gap-2 text-sm text-slate-700">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            Cidade: Uberlândia - MG
-          </div>
-          <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
-            Bairro: {selectedNeighborhood || "Não definido"}
-          </div>
-        </div>
+        <h2 className="text-[18px] font-semibold text-[#111318]">
+          Mapa de Uberlândia
+        </h2>
       </div>
 
-      <div className="p-6">
-        <div className="h-140 overflow-hidden rounded-[28px] border border-slate-200">
-          <MapContainer
-            center={uberlandiaCenter}
-            zoom={11}
-            minZoom={11}
-            maxZoom={15}
+      <div className="mt-5 h-100.5 overflow-hidden rounded-[14px] bg-[#f7d100]">
+        <MapContainer
+          center={uberlandiaCenter}
+          zoom={11}
+          minZoom={11}
+          maxZoom={15}
+          maxBounds={uberlandiaBounds}
+          maxBoundsViscosity={1}
+          zoomControl={false}
+          scrollWheelZoom={false}
+          className="h-full w-full"
+        >
+          <TileLayer
+            attribution="&copy; OpenStreetMap contributors"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+
+          <MapController
+            center={currentCenter}
+            zoom={currentZoom}
             maxBounds={uberlandiaBounds}
-            maxBoundsViscosity={1}
-            zoomControl={false}
-            scrollWheelZoom={false}
-            className="h-full w-full"
-          >
-            <TileLayer
-              attribution="&copy; OpenStreetMap contributors"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+          />
 
-            <MapController
-              center={currentCenter}
-              zoom={currentZoom}
-              maxBounds={uberlandiaBounds}
-            />
+          <ZoomControl position="topright" />
 
-            <ZoomControl position="topright" />
+          <Circle
+            center={uberlandiaCenter}
+            radius={8500}
+            pathOptions={{
+              color: "#13a36d",
+              fillColor: "#dff3eb",
+              fillOpacity: 0.14,
+              weight: 1.4,
+            }}
+          />
 
-            <Circle
-              center={uberlandiaCenter}
-              radius={8500}
+          {selectedBoundary ? (
+            <Polygon
+              positions={selectedBoundary.positions}
               pathOptions={{
-                color: "#38bdf8",
-                fillColor: "#e0f2fe",
-                fillOpacity: 0.15,
-                weight: 1.5,
+                color: "#b91c1c",
+                weight: 3,
+                dashArray: "10 8",
+                fillColor: "#b91c1c",
+                fillOpacity: 0.22,
               }}
             />
+          ) : null}
 
-            {neighborhoodCoordinates.map((neighborhood) => {
-              const isSelected = neighborhood.name === selectedNeighborhood;
+          {neighborhoodCoordinates.map((neighborhood) => {
+            const isSelected = neighborhood.name === selectedNeighborhood;
 
-              return (
-                <CircleMarker
-                  key={neighborhood.name}
-                  center={neighborhood.position}
-                  radius={isSelected ? 12 : 8}
-                  pathOptions={{
-                    color: isSelected ? "#0284c7" : "#7dd3fc",
-                    fillColor: isSelected ? "#0284c7" : "#e0f2fe",
-                    fillOpacity: isSelected ? 0.95 : 0.9,
-                    weight: isSelected ? 2 : 1.5,
-                  }}
-                >
+            return (
+              <CircleMarker
+                key={neighborhood.name}
+                center={neighborhood.position}
+                radius={isSelected ? 9 : 6}
+                pathOptions={{
+                  color: isSelected ? "#0b9f6a" : "#83d8bb",
+                  fillColor: isSelected ? "#0b9f6a" : "#c9f1e1",
+                  fillOpacity: 0.95,
+                  weight: isSelected ? 2 : 1.4,
+                }}
+              >
+                {isSelected ? (
                   <Tooltip
                     direction="top"
-                    offset={[0, -4]}
+                    offset={[0, -6]}
                     opacity={1}
-                    permanent={isSelected}
+                    permanent
                   >
                     {neighborhood.name}
                   </Tooltip>
-                </CircleMarker>
-              );
-            })}
-
-            {userLocation ? (
-              <CircleMarker
-                center={[userLocation.latitude, userLocation.longitude]}
-                radius={10}
-                pathOptions={{
-                  color: "#0f172a",
-                  fillColor: "#0f172a",
-                  fillOpacity: 0.95,
-                  weight: 2,
-                }}
-              >
-                <Tooltip direction="top" offset={[0, -4]} opacity={1} permanent>
-                  Sua localização
-                </Tooltip>
+                ) : null}
               </CircleMarker>
-            ) : null}
+            );
+          })}
 
-            {recommendedUnits
-              .filter(
-                (unit) => unit.latitude !== null && unit.longitude !== null,
-              )
-              .map((unit) => (
-                <Marker
-                  key={unit.id}
-                  position={[unit.latitude as number, unit.longitude as number]}
-                >
-                  <Popup>
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold text-slate-900">
-                        {unit.name}
-                      </p>
-                      <p className="text-sm text-slate-700">
-                        {unit.unitType} • {unit.careLevel}
-                      </p>
-                      <p className="text-sm text-slate-700">
-                        Bairro: {unit.neighborhood ?? "Não informado"}
-                      </p>
-                      <p className="text-sm text-slate-700">{unit.address}</p>
-                      <p className="text-sm text-slate-700">
-                        {formatDistance(unit.distanceKm)}
-                      </p>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-          </MapContainer>
-        </div>
+          {userLocation ? (
+            <CircleMarker
+              center={[userLocation.latitude, userLocation.longitude]}
+              radius={8}
+              pathOptions={{
+                color: "#02051f",
+                fillColor: "#02051f",
+                fillOpacity: 1,
+                weight: 2,
+              }}
+            >
+              <Tooltip direction="top" offset={[0, -6]} opacity={1}>
+                Sua localização
+              </Tooltip>
+            </CircleMarker>
+          ) : null}
 
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
-              Bairro selecionado
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              {selectedCoordinate
-                ? "O mapa recentraliza automaticamente no ponto aproximado do bairro salvo"
-                : "O bairro salvo ainda não tem ponto aproximado"}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
-              Sintomas
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              O assistente virtual vai orientar quando procurar avaliação
-              presencial
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
-              Atendimento
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Recomendação de unidades de saúde próximas à localização do
-              usuário
-            </p>
-          </div>
-        </div>
+          {recommendedUnits
+            .filter((unit) => unit.latitude !== null && unit.longitude !== null)
+            .map((unit) => (
+              <Marker
+                key={unit.id}
+                position={[unit.latitude as number, unit.longitude as number]}
+                icon={healthUnitIcon}
+              >
+                <Popup>
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-[#111318]">
+                      {unit.name}
+                    </p>
+                    <p className="text-sm text-[#667085]">{unit.unitType}</p>
+                    <p className="text-sm text-[#667085]">
+                      {unit.neighborhood ?? "Bairro não informado"}
+                    </p>
+                    <p className="text-sm text-[#667085]">{unit.address}</p>
+                    <p className="text-sm text-[#667085]">
+                      {formatDistance(unit.distanceKm)}
+                    </p>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+        </MapContainer>
       </div>
     </section>
   );
