@@ -22,6 +22,22 @@ function sumNumbers(values: Array<number | null>): number {
   return values.reduce<number>((total, value) => total + (value ?? 0), 0);
 }
 
+function extractWindSpeedFromPayload(rawPayload: unknown) {
+  if (!rawPayload || typeof rawPayload !== "object") {
+    return null;
+  }
+
+  const current = (rawPayload as { current?: unknown }).current;
+
+  if (!current || typeof current !== "object") {
+    return null;
+  }
+
+  const windSpeed = (current as { wind_speed_10m?: unknown }).wind_speed_10m;
+
+  return typeof windSpeed === "number" ? windSpeed : null;
+}
+
 function buildSignals(input: {
   todayProbability: number | null;
   todayPrecipitation: number | null;
@@ -74,6 +90,7 @@ function mapSnapshotToResponse(snapshot: {
   tomorrowPrecipitationSum: number | null;
   pastThreeDaysPrecipitationSum: number;
   preventionWindowScore: number;
+  rawPayload: unknown;
   fetchedAt: Date;
 }) {
   const signals = buildSignals({
@@ -97,6 +114,7 @@ function mapSnapshotToResponse(snapshot: {
       rainMm: snapshot.currentRain,
       relativeHumidity: snapshot.currentRelativeHumidity,
       weatherCode: snapshot.currentWeatherCode,
+      windSpeedKmh: extractWindSpeedFromPayload(snapshot.rawPayload),
     },
     today: {
       precipitationProbabilityMax: snapshot.todayPrecipitationProbabilityMax,
@@ -149,7 +167,10 @@ export async function getWeatherPreventionContext(neighborhood: string) {
     },
   });
 
-  if (cachedSnapshot) {
+  if (
+    cachedSnapshot &&
+    extractWindSpeedFromPayload(cachedSnapshot.rawPayload) !== null
+  ) {
     return mapSnapshotToResponse(cachedSnapshot);
   }
 

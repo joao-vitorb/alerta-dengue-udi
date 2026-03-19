@@ -10,6 +10,7 @@ export const symptomCheckerBodySchema = z.object({
   vomiting: z.boolean().default(false),
   rash: z.boolean().default(false),
   fatigue: z.boolean().default(false),
+  lossOfAppetite: z.boolean().default(false),
   abdominalPain: z.boolean().default(false),
   persistentVomiting: z.boolean().default(false),
   bleedingSigns: z.boolean().default(false),

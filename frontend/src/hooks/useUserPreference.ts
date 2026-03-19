@@ -173,7 +173,6 @@ export function useUserPreference() {
       saveLocalExperience(nextExperience);
       setExperience(nextExperience);
       setUserPreference(savedPreference);
-      setIsOnboardingOpen(false);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {

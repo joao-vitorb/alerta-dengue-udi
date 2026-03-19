@@ -1,18 +1,20 @@
-import { useMemo } from "react";
-import { HealthUnitsPanel } from "../components/health-units/HealthUnitsPanel";
-import { AppShell } from "../components/layout/AppShell";
+import { useEffect, useMemo, useState } from "react";
+import { DashboardHeader } from "../components/dashboard/DashboardHeader";
+import { DashboardAlertBanner } from "../components/dashboard/DashboardAlertBanner";
+import { DashboardToolsPanel } from "../components/dashboard/DashboardToolsPanel";
+import { PreventionTipsCard } from "../components/dashboard/PreventionTipsCard";
+import { ClimateModal } from "../components/dashboard/ClimateModal";
+import { NearbyHealthUnitsModal } from "../components/dashboard/NearbyHealthUnitsModal";
+import { VirtualDiagnosisModal } from "../components/dashboard/VirtualDiagnosisModal";
+import { PreferencesModal } from "../components/dashboard/PreferencesModal";
 import { MapCanvas } from "../components/map/MapCanvas";
-import { NotificationSetupPanel } from "../components/notifications/NotificationSetupPanel";
 import { OnboardingModal } from "../components/onboarding/OnboardingModal";
-import { PreventiveAlertsPanel } from "../components/preventive-alerts/PreventiveAlertsPanel";
-import { SettingsPanel } from "../components/settings/SettingsPanel";
-import { SymptomCheckerPanel } from "../components/symptom-checker/SymptomCheckerPanel";
-import { InfoCard } from "../components/ui/InfoCard";
 import { neighborhoodOptions } from "../data/neighborhoodOptions";
 import { useBrowserLocation } from "../hooks/useBrowserLocation";
-import { useUserPreference } from "../hooks/useUserPreference";
+import { usePreventiveAlerts } from "../hooks/usePreventiveAlerts";
+import { useUserPreference } from "../hooks/useUserPreference.ts";
+import { useWeatherContext } from "../hooks/useWeatherContext";
 import { listRecommendedHealthUnits } from "../services/healthUnitService";
-import { useEffect, useState } from "react";
 import type { HealthUnit } from "../types/healthUnit";
 import type { PreferenceFormValues } from "../types/userPreference";
 
@@ -32,26 +34,70 @@ function getInitialFormValues(
   };
 }
 
+function getDynamicAlertContent(input: {
+  title?: string;
+  description?: string;
+  weatherLoading: boolean;
+  weatherError: boolean;
+}) {
+  if (input.weatherLoading) {
+    return {
+      title: "Analisando condições atuais",
+      description:
+        "Estamos atualizando o contexto climático da sua região para montar o alerta preventivo.",
+    };
+  }
+
+  if (input.weatherError) {
+    return {
+      title: "Monitoramento temporariamente indisponível",
+      description:
+        "Não foi possível atualizar o clima agora, mas o restante do sistema continua funcionando normalmente.",
+    };
+  }
+
+  if (input.title && input.description) {
+    return {
+      title: input.title,
+      description: input.description,
+    };
+  }
+
+  return {
+    title: "Monitoramento preventivo ativo",
+    description:
+      "Mantenha a vistoria da sua residência e acompanhe o mapa, o clima e as unidades mais próximas.",
+  };
+}
+
 export function MapPage() {
   const {
     experience,
-    userPreference,
-    isLoading,
     isSaving,
     isOnboardingOpen,
     errorMessage,
     submitOnboarding,
     saveSettings,
-    reopenOnboarding,
     closeOnboarding,
   } = useUserPreference();
 
-  const { location, isLoadingLocation, locationErrorMessage, requestLocation } =
-    useBrowserLocation();
+  const { location, isLoadingLocation, requestLocation } = useBrowserLocation();
+
+  const {
+    data: weatherData,
+    isLoading: isLoadingWeather,
+    errorMessage: weatherErrorMessage,
+  } = useWeatherContext(experience?.neighborhood);
+
+  const { data: alertsData } = usePreventiveAlerts(experience?.neighborhood);
 
   const [recommendedMapUnits, setRecommendedMapUnits] = useState<HealthUnit[]>(
     [],
   );
+  const [isClimateOpen, setIsClimateOpen] = useState(false);
+  const [isNearbyUnitsOpen, setIsNearbyUnitsOpen] = useState(false);
+  const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
+  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -69,7 +115,7 @@ export function MapPage() {
           neighborhood: experience.neighborhood,
           latitude: location?.latitude,
           longitude: location?.longitude,
-          limit: 3,
+          limit: 4,
         });
 
         if (!isMounted) {
@@ -113,174 +159,98 @@ export function MapPage() {
     );
   }, [experience]);
 
-  const notificationSummary = useMemo(() => {
-    if (!experience) {
-      return "Carregando preferências";
-    }
+  const dynamicAlert = useMemo(() => {
+    const firstAlert = alertsData?.alerts?.[0];
 
-    if (!experience.notificationsEnabled) {
-      return "Alertas desativados";
-    }
-
-    if (experience.deviceType === "MOBILE") {
-      if (
-        experience.emailNotificationsEnabled &&
-        experience.pushNotificationsEnabled
-      ) {
-        return "Email e push ativados";
-      }
-
-      if (experience.emailNotificationsEnabled) {
-        return "Email ativado";
-      }
-
-      if (experience.pushNotificationsEnabled) {
-        return "Push ativado";
-      }
-
-      return "Alertas gerais ativados";
-    }
-
-    if (experience.emailNotificationsEnabled) {
-      return "Email ativado no desktop";
-    }
-
-    return "Alertas gerais ativados no desktop";
-  }, [experience]);
-
-  const lastSyncValue = useMemo(() => {
-    if (!userPreference) {
-      return "Pendente";
-    }
-
-    return new Date(userPreference.updatedAt).toLocaleString("pt-BR");
-  }, [userPreference]);
+    return getDynamicAlertContent({
+      title: firstAlert?.title,
+      description: firstAlert?.description,
+      weatherLoading: isLoadingWeather,
+      weatherError: Boolean(weatherErrorMessage),
+    });
+  }, [alertsData, isLoadingWeather, weatherErrorMessage]);
 
   return (
-    <AppShell>
-      <OnboardingModal
-        isOpen={isOnboardingOpen}
-        deviceType={experience?.deviceType ?? "DESKTOP"}
-        initialValues={onboardingInitialValues}
-        isSubmitting={isSaving}
-        errorMessage={errorMessage}
-        onSubmit={submitOnboarding}
-        onClose={closeOnboarding}
-        canClose={Boolean(experience?.hasCompletedOnboarding)}
-      />
+    <main className="min-h-screen bg-[#eaf6f2] px-5 py-3">
+      <div className="mx-auto max-w-257.5">
+        <OnboardingModal
+          isOpen={isOnboardingOpen}
+          deviceType={experience?.deviceType ?? "DESKTOP"}
+          initialValues={onboardingInitialValues}
+          isSubmitting={isSaving}
+          errorMessage={errorMessage}
+          onSubmit={submitOnboarding}
+          onClose={closeOnboarding}
+          canClose={Boolean(experience?.hasCompletedOnboarding)}
+        />
 
-      <section className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-        <aside className="space-y-6">
-          <section className="rounded-4xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">
-              Plataforma de prevenção
-            </p>
+        <ClimateModal
+          isOpen={isClimateOpen}
+          onClose={() => setIsClimateOpen(false)}
+          data={weatherData}
+          isLoading={isLoadingWeather}
+          errorMessage={weatherErrorMessage}
+          alertTitle={dynamicAlert.title}
+          alertDescription={dynamicAlert.description}
+        />
 
-            <h2 className="mt-4 text-3xl font-semibold leading-tight text-slate-900">
-              {experience?.neighborhood
-                ? `Seu monitoramento começa em ${experience.neighborhood}`
-                : "Configure seu bairro para personalizar o sistema"}
-            </h2>
+        <NearbyHealthUnitsModal
+          isOpen={isNearbyUnitsOpen}
+          onClose={() => setIsNearbyUnitsOpen(false)}
+          neighborhood={experience?.neighborhood}
+          location={location}
+        />
 
-            <p className="mt-4 text-sm leading-7 text-slate-600">
-              AO onboarding agora salva dados localmente e sincroniza a
-              experiência mínima com o backend sem exigir conta de usuário.
-            </p>
+        <VirtualDiagnosisModal
+          isOpen={isDiagnosisOpen}
+          onClose={() => setIsDiagnosisOpen(false)}
+        />
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={reopenOnboarding}
-                className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-medium text-sky-700 transition hover:bg-sky-100"
-              >
-                Reabrir onboarding
-              </button>
+        <PreferencesModal
+          isOpen={isPreferencesOpen}
+          onClose={() => setIsPreferencesOpen(false)}
+          experience={experience}
+          initialValues={onboardingInitialValues}
+          isSubmitting={isSaving}
+          errorMessage={errorMessage}
+          onSubmit={saveSettings}
+        />
 
-              <button
-                type="button"
-                onClick={requestLocation}
-                disabled={isLoadingLocation}
-                className="inline-flex rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isLoadingLocation
-                  ? "Localizando..."
-                  : "Usar minha localização"}
-              </button>
-            </div>
+        <DashboardHeader onOpenPreferences={() => setIsPreferencesOpen(true)} />
 
-            {locationErrorMessage ? (
-              <p className="mt-4 text-sm text-rose-700">
-                {locationErrorMessage}
-              </p>
-            ) : null}
-          </section>
-
-          <InfoCard
-            eyebrow="Mapa"
-            value={experience?.neighborhood || "Uberlândia"}
-            title="Visualização real da cidade"
-            description="O bairro salvo já orienta o foco inicial do mapa dentro de uma área limitada da cidade."
+        <div className="mt-4">
+          <DashboardAlertBanner
+            title={dynamicAlert.title}
+            description={dynamicAlert.description}
           />
-
-          <InfoCard
-            eyebrow="Notificações"
-            value={notificationSummary}
-            title="Regras por dispositivo"
-            description="Mobile prepara push e email. Desktop mantém somente o fluxo por email."
-          />
-
-          <InfoCard
-            eyebrow="Sincronização"
-            value={lastSyncValue}
-            title="Integração com backend"
-            description="As preferências locais já podem ser criadas, buscadas e atualizadas via API REST."
-          />
-
-          {errorMessage && !isOnboardingOpen ? (
-            <section className="rounded-4xl border border-rose-200 bg-rose-50 p-6">
-              <p className="text-sm font-medium text-rose-700">
-                {errorMessage}
-              </p>
-            </section>
-          ) : null}
-        </aside>
-
-        <div className="space-y-6">
-          <MapCanvas
-            selectedNeighborhood={experience?.neighborhood}
-            recommendedUnits={recommendedMapUnits}
-            userLocation={location}
-          />
-
-          <PreventiveAlertsPanel
-            selectedNeighborhood={experience?.neighborhood}
-          />
-
-          <NotificationSetupPanel experience={experience} />
-
-          <SymptomCheckerPanel
-            selectedNeighborhood={experience?.neighborhood}
-          />
-
-          <HealthUnitsPanel selectedNeighborhood={experience?.neighborhood} />
-
-          {isLoading ? (
-            <section className="rounded-4xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm text-slate-600">
-                Carregando preferências...
-              </p>
-            </section>
-          ) : experience?.hasCompletedOnboarding ? (
-            <SettingsPanel
-              experience={experience}
-              initialValues={onboardingInitialValues}
-              isSubmitting={isSaving}
-              errorMessage={errorMessage}
-              onSubmit={saveSettings}
-            />
-          ) : null}
         </div>
-      </section>
-    </AppShell>
+
+        <section className="mt-4 grid gap-4 lg:grid-cols-[1fr_332px]">
+          <div>
+            <MapCanvas
+              selectedNeighborhood={experience?.neighborhood}
+              recommendedUnits={recommendedMapUnits}
+              userLocation={location}
+            />
+          </div>
+
+          <div className="space-y-4">
+            <DashboardToolsPanel
+              onOpenClimate={() => setIsClimateOpen(true)}
+              onOpenNearbyUnits={() => {
+                if (!location && !isLoadingLocation) {
+                  requestLocation();
+                }
+
+                setIsNearbyUnitsOpen(true);
+              }}
+              onOpenDiagnosis={() => setIsDiagnosisOpen(true)}
+            />
+
+            <PreventionTipsCard />
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }

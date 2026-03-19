@@ -29,6 +29,7 @@ const symptomLabels = {
   vomiting: "Vômito",
   rash: "Manchas na pele",
   fatigue: "Cansaço",
+  lossOfAppetite: "Falta de apetite",
   abdominalPain: "Dor abdominal",
   persistentVomiting: "Vômito persistente",
   bleedingSigns: "Sinais de sangramento",
@@ -46,6 +47,7 @@ const compatibleSymptomsKeys: Array<keyof SymptomCheckerInput> = [
   "vomiting",
   "rash",
   "fatigue",
+  "lossOfAppetite",
 ];
 
 const warningSignsKeys: Array<keyof SymptomCheckerInput> = [
