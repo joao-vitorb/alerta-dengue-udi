@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { DashboardHeader } from "../components/dashboard/DashboardHeader";
 import { DashboardAlertBanner } from "../components/dashboard/DashboardAlertBanner";
 import { DashboardToolsPanel } from "../components/dashboard/DashboardToolsPanel";
@@ -11,11 +11,10 @@ import { MapCanvas } from "../components/map/MapCanvas";
 import { OnboardingModal } from "../components/onboarding/OnboardingModal";
 import { neighborhoodOptions } from "../data/neighborhoodOptions";
 import { useBrowserLocation } from "../hooks/useBrowserLocation";
+import { useMapHealthUnits } from "../hooks/useMapHealthUnits";
 import { usePreventiveAlerts } from "../hooks/usePreventiveAlerts";
-import { useUserPreference } from "../hooks/useUserPreference.ts";
+import { useUserPreference } from "../hooks/useUserPreference";
 import { useWeatherContext } from "../hooks/useWeatherContext";
-import { listRecommendedHealthUnits } from "../services/healthUnitService";
-import type { HealthUnit } from "../types/healthUnit";
 import type { PreferenceFormValues } from "../types/userPreference";
 
 function getInitialFormValues(
@@ -91,53 +90,12 @@ export function MapPage() {
 
   const { data: alertsData } = usePreventiveAlerts(experience?.neighborhood);
 
-  const [recommendedMapUnits, setRecommendedMapUnits] = useState<HealthUnit[]>(
-    [],
-  );
+  const { items: mapHealthUnits } = useMapHealthUnits();
+
   const [isClimateOpen, setIsClimateOpen] = useState(false);
   const [isNearbyUnitsOpen, setIsNearbyUnitsOpen] = useState(false);
   const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadRecommendedUnits() {
-      if (!experience?.neighborhood) {
-        if (isMounted) {
-          setRecommendedMapUnits([]);
-        }
-        return;
-      }
-
-      try {
-        const response = await listRecommendedHealthUnits({
-          neighborhood: experience.neighborhood,
-          latitude: location?.latitude,
-          longitude: location?.longitude,
-          limit: 4,
-        });
-
-        if (!isMounted) {
-          return;
-        }
-
-        setRecommendedMapUnits(response.items);
-      } catch {
-        if (!isMounted) {
-          return;
-        }
-
-        setRecommendedMapUnits([]);
-      }
-    }
-
-    void loadRecommendedUnits();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [experience?.neighborhood, location?.latitude, location?.longitude]);
 
   const onboardingInitialValues = useMemo(() => {
     if (!experience) {
@@ -229,7 +187,7 @@ export function MapPage() {
           <div>
             <MapCanvas
               selectedNeighborhood={experience?.neighborhood}
-              recommendedUnits={recommendedMapUnits}
+              recommendedUnits={mapHealthUnits}
               userLocation={location}
             />
           </div>

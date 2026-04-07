@@ -3,24 +3,28 @@ import { icon } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   Circle,
-  CircleMarker,
   MapContainer,
   Marker,
   Polygon,
   Popup,
   TileLayer,
-  Tooltip,
   ZoomControl,
 } from "react-leaflet";
 import type { HealthUnit } from "../../types/healthUnit";
 import {
   getNeighborhoodCoordinate,
-  neighborhoodCoordinates,
   uberlandiaBounds,
   uberlandiaCenter,
 } from "../../data/neighborhoodCoordinates";
 import { getNeighborhoodBoundary } from "../../data/neighborhoodBoundaries";
+import { useNeighborhoodGeoJson } from "../../hooks/useNeighborhoodGeoJson";
 import { faHospital, faMapLocationDot } from "../../lib/icons";
+import {
+  findNeighborhoodFeature,
+  getFeatureBoundsPositions,
+  getFeaturePolygonSets,
+} from "../../utils/neighborhoodGeoJson";
+import { CtrlScrollZoomHandler } from "./CtrlScrollZoomHandler";
 import { MapController } from "./MapController";
 
 type MapCanvasProps = {
@@ -58,15 +62,49 @@ function formatDistance(distanceKm?: number | null) {
   return `~${Math.round(distanceKm)} km`;
 }
 
+function getCareLevelLabel(value?: string | null) {
+  if (value === "URGENT_CARE") {
+    return "Urgência";
+  }
+
+  if (value === "PRIMARY_CARE") {
+    return "Atenção primária";
+  }
+
+  return "Atendimento geral";
+}
+
 export function MapCanvas({
   selectedNeighborhood,
   recommendedUnits = [],
   userLocation = null,
 }: MapCanvasProps) {
   const selectedCoordinate = getNeighborhoodCoordinate(selectedNeighborhood);
-  const selectedBoundary = getNeighborhoodBoundary(selectedNeighborhood);
   const currentCenter = selectedCoordinate?.position ?? uberlandiaCenter;
   const currentZoom = selectedCoordinate ? 13 : 11;
+
+  const { data: neighborhoodGeoJson } = useNeighborhoodGeoJson();
+
+  const selectedFeature = findNeighborhoodFeature(
+    neighborhoodGeoJson,
+    selectedNeighborhood,
+  );
+
+  const selectedFeaturePolygons = getFeaturePolygonSets(selectedFeature);
+  const selectedFeatureBounds = getFeatureBoundsPositions(selectedFeature);
+
+  const fallbackBoundary = getNeighborhoodBoundary(selectedNeighborhood);
+  const fallbackPolygons = fallbackBoundary ? [fallbackBoundary.positions] : [];
+
+  const selectedNeighborhoodPolygons =
+    selectedFeaturePolygons.length > 0
+      ? selectedFeaturePolygons
+      : fallbackPolygons;
+
+  const selectedNeighborhoodBounds =
+    selectedFeatureBounds.length > 0
+      ? selectedFeatureBounds
+      : (fallbackBoundary?.positions ?? null);
 
   return (
     <section className="rounded-[18px] border border-[#d8dcd8] bg-white p-4">
@@ -90,6 +128,7 @@ export function MapCanvas({
           maxBoundsViscosity={1}
           zoomControl={false}
           scrollWheelZoom={false}
+          dragging={true}
           className="h-full w-full"
         >
           <TileLayer
@@ -101,7 +140,10 @@ export function MapCanvas({
             center={currentCenter}
             zoom={currentZoom}
             maxBounds={uberlandiaBounds}
+            focusBounds={selectedNeighborhoodBounds}
           />
+
+          <CtrlScrollZoomHandler />
 
           <ZoomControl position="topright" />
 
@@ -116,9 +158,10 @@ export function MapCanvas({
             }}
           />
 
-          {selectedBoundary ? (
+          {selectedNeighborhoodPolygons.map((positions, index) => (
             <Polygon
-              positions={selectedBoundary.positions}
+              key={`${selectedNeighborhood ?? "selected"}-${index}`}
+              positions={positions}
               pathOptions={{
                 color: "#b91c1c",
                 weight: 3,
@@ -127,52 +170,19 @@ export function MapCanvas({
                 fillOpacity: 0.22,
               }}
             />
-          ) : null}
-
-          {neighborhoodCoordinates.map((neighborhood) => {
-            const isSelected = neighborhood.name === selectedNeighborhood;
-
-            return (
-              <CircleMarker
-                key={neighborhood.name}
-                center={neighborhood.position}
-                radius={isSelected ? 9 : 6}
-                pathOptions={{
-                  color: isSelected ? "#0b9f6a" : "#83d8bb",
-                  fillColor: isSelected ? "#0b9f6a" : "#c9f1e1",
-                  fillOpacity: 0.95,
-                  weight: isSelected ? 2 : 1.4,
-                }}
-              >
-                {isSelected ? (
-                  <Tooltip
-                    direction="top"
-                    offset={[0, -6]}
-                    opacity={1}
-                    permanent
-                  >
-                    {neighborhood.name}
-                  </Tooltip>
-                ) : null}
-              </CircleMarker>
-            );
-          })}
+          ))}
 
           {userLocation ? (
-            <CircleMarker
+            <Circle
               center={[userLocation.latitude, userLocation.longitude]}
-              radius={8}
+              radius={120}
               pathOptions={{
                 color: "#02051f",
                 fillColor: "#02051f",
-                fillOpacity: 1,
+                fillOpacity: 0.2,
                 weight: 2,
               }}
-            >
-              <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                Sua localização
-              </Tooltip>
-            </CircleMarker>
+            />
           ) : null}
 
           {recommendedUnits
@@ -188,11 +198,29 @@ export function MapCanvas({
                     <p className="text-sm font-semibold text-[#111318]">
                       {unit.name}
                     </p>
-                    <p className="text-sm text-[#667085]">{unit.unitType}</p>
+
+                    <p className="text-sm text-[#667085]">
+                      {unit.unitType} • {getCareLevelLabel(unit.careLevel)}
+                    </p>
+
                     <p className="text-sm text-[#667085]">
                       {unit.neighborhood ?? "Bairro não informado"}
                     </p>
+
                     <p className="text-sm text-[#667085]">{unit.address}</p>
+
+                    {unit.phone ? (
+                      <p className="text-sm text-[#667085]">
+                        Telefone: {unit.phone}
+                      </p>
+                    ) : null}
+
+                    {unit.openingHours ? (
+                      <p className="text-sm text-[#667085]">
+                        Horário: {unit.openingHours}
+                      </p>
+                    ) : null}
+
                     <p className="text-sm text-[#667085]">
                       {formatDistance(unit.distanceKm)}
                     </p>
