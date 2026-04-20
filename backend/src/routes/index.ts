@@ -1,22 +1,18 @@
 import { Router } from "express";
-import { healthRouter } from "./healthRoutes";
-import { userPreferenceRouter } from "./userPreferenceRoutes";
+import { climateNotificationAutomationRouter } from "./climateNotificationAutomationRoutes";
 import { healthUnitRouter } from "./healthUnitRoutes";
-import { weatherRouter } from "./weatherRoutes";
-import { preventiveAlertRouter } from "./preventiveAlertRoutes";
-import { symptomCheckerRouter } from "./symptomCheckerRoutes";
-import { pushSubscriptionRouter } from "./pushSubscriptionRoutes";
 import { notificationRouter } from "./notificationRoutes";
+import { symptomCheckerRouter } from "./symptomCheckerRoutes";
+import { userPreferenceRouter } from "./userPreferenceRoutes";
+import { weatherRouter } from "./weatherRoutes";
 
-const apiRouter = Router();
+const router = Router();
 
-apiRouter.use("/health", healthRouter);
-apiRouter.use("/user-preferences", userPreferenceRouter);
-apiRouter.use("/health-units", healthUnitRouter);
-apiRouter.use("/weather", weatherRouter);
-apiRouter.use("/preventive-alerts", preventiveAlertRouter);
-apiRouter.use("/symptom-checker", symptomCheckerRouter);
-apiRouter.use("/push-subscriptions", pushSubscriptionRouter);
-apiRouter.use("/notifications", notificationRouter)
+router.use("/automation", climateNotificationAutomationRouter);
+router.use("/health-units", healthUnitRouter);
+router.use("/notifications", notificationRouter);
+router.use("/symptom-checker", symptomCheckerRouter);
+router.use("/user-preferences", userPreferenceRouter);
+router.use("/weather", weatherRouter);
 
-export { apiRouter };
+export { router };
