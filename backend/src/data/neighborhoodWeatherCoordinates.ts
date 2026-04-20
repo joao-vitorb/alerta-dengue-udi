@@ -1,51 +1,10 @@
-export type NeighborhoodWeatherCoordinate = {
+import { generatedNeighborhoodWeatherCoordinates } from "./generatedNeighborhoodWeatherCoordinates";
+
+type NeighborhoodWeatherCoordinate = {
   name: string;
   latitude: number;
   longitude: number;
 };
-
-const supportedNeighborhoods: NeighborhoodWeatherCoordinate[] = [
-  {
-    name: "Centro",
-    latitude: -18.9143,
-    longitude: -48.2743,
-  },
-  {
-    name: "Tibery",
-    latitude: -18.8892,
-    longitude: -48.2508,
-  },
-  {
-    name: "Santa Mônica",
-    latitude: -18.9182,
-    longitude: -48.245,
-  },
-  {
-    name: "Patrimônio",
-    latitude: -18.9308,
-    longitude: -48.285,
-  },
-  {
-    name: "Luizote",
-    latitude: -18.906,
-    longitude: -48.317,
-  },
-  {
-    name: "Martins",
-    latitude: -18.9125,
-    longitude: -48.288,
-  },
-  {
-    name: "Morumbi",
-    latitude: -18.952,
-    longitude: -48.244,
-  },
-  {
-    name: "Roosevelt",
-    latitude: -18.887,
-    longitude: -48.3,
-  },
-];
 
 function normalizeNeighborhoodName(value: string) {
   return value
@@ -55,16 +14,33 @@ function normalizeNeighborhoodName(value: string) {
     .replace(/\p{Diacritic}/gu, "");
 }
 
-export function listSupportedWeatherNeighborhoods() {
-  return supportedNeighborhoods;
+const aliases: Record<string, string> = {
+  roosevelt: "roosevelt",
+  "presidente roosevelt": "roosevelt",
+};
+
+const coordinatesMap = new Map<string, NeighborhoodWeatherCoordinate>(
+  generatedNeighborhoodWeatherCoordinates.map((item) => [
+    normalizeNeighborhoodName(item.name),
+    {
+      name: item.name,
+      latitude: item.latitude,
+      longitude: item.longitude,
+    },
+  ]),
+);
+
+export function getNeighborhoodWeatherCoordinate(name?: string) {
+  if (!name) {
+    return null;
+  }
+
+  const normalizedName = normalizeNeighborhoodName(name);
+  const canonicalName = aliases[normalizedName] ?? normalizedName;
+
+  return coordinatesMap.get(canonicalName) ?? null;
 }
 
-export function getNeighborhoodWeatherCoordinate(name: string) {
-  const normalizedName = normalizeNeighborhoodName(name);
-
-  return (
-    supportedNeighborhoods.find(
-      (item) => normalizeNeighborhoodName(item.name) === normalizedName,
-    ) ?? null
-  );
+export function listSupportedWeatherNeighborhoods() {
+  return generatedNeighborhoodWeatherCoordinates.map((item) => item.name);
 }
