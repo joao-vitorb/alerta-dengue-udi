@@ -107,18 +107,18 @@ export function MapCanvas({
       : (fallbackBoundary?.positions ?? null);
 
   return (
-    <section className="rounded-[18px] border border-[#d8dcd8] bg-white p-4">
+    <section className="rounded-[14px] border border-[#d8dcd8] bg-white p-3 sm:rounded-[18px] sm:p-4">
       <div className="flex items-center gap-2">
         <span className="text-[#10a672]">
           <FontAwesomeIcon icon={faMapLocationDot} />
         </span>
 
-        <h2 className="text-[18px] font-semibold text-[#111318]">
+        <h2 className="text-[16px] font-semibold text-[#111318] sm:text-[17px] lg:text-[18px]">
           Mapa de Uberlândia
         </h2>
       </div>
 
-      <div className="mt-5 h-100.5 overflow-hidden rounded-[14px] bg-[#f7d100]">
+      <div className="mt-3 h-[320px] overflow-hidden rounded-[12px] bg-[#f7d100] sm:mt-4 sm:h-[400px] sm:rounded-[14px] lg:mt-5 lg:h-100.5">
         <MapContainer
           center={uberlandiaCenter}
           zoom={11}
@@ -194,34 +194,36 @@ export function MapCanvas({
                 icon={healthUnitIcon}
               >
                 <Popup>
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-[#111318]">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <p className="text-xs font-semibold text-[#111318] sm:text-sm">
                       {unit.name}
                     </p>
 
-                    <p className="text-sm text-[#667085]">
+                    <p className="text-xs text-[#667085] sm:text-sm">
                       {unit.unitType} • {getCareLevelLabel(unit.careLevel)}
                     </p>
 
-                    <p className="text-sm text-[#667085]">
+                    <p className="text-xs text-[#667085] sm:text-sm">
                       {unit.neighborhood ?? "Bairro não informado"}
                     </p>
 
-                    <p className="text-sm text-[#667085]">{unit.address}</p>
+                    <p className="text-xs text-[#667085] sm:text-sm">
+                      {unit.address}
+                    </p>
 
                     {unit.phone ? (
-                      <p className="text-sm text-[#667085]">
+                      <p className="text-xs text-[#667085] sm:text-sm">
                         Telefone: {unit.phone}
                       </p>
                     ) : null}
 
                     {unit.openingHours ? (
-                      <p className="text-sm text-[#667085]">
+                      <p className="text-xs text-[#667085] sm:text-sm">
                         Horário: {unit.openingHours}
                       </p>
                     ) : null}
 
-                    <p className="text-sm text-[#667085]">
+                    <p className="text-xs text-[#667085] sm:text-sm">
                       {formatDistance(unit.distanceKm)}
                     </p>
                   </div>

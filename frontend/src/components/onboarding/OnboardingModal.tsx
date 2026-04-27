@@ -214,8 +214,8 @@ export function OnboardingModal({
   }
 
   return (
-    <div className="fixed inset-0 z-3000 flex items-center justify-center bg-[#edf7f4] px-6 py-10">
-      <div className="w-full max-w-157 rounded-[22px] border border-[#d6ddd9] bg-white px-8 py-9 shadow-[0_10px_32px_rgba(15,23,42,0.06)]">
+    <div className="fixed inset-0 z-3000 flex items-center justify-center overflow-y-auto bg-[#edf7f4] px-3 py-6 sm:px-6 sm:py-10">
+      <div className="w-full max-w-157 rounded-[18px] border border-[#d6ddd9] bg-white px-5 py-6 shadow-[0_10px_32px_rgba(15,23,42,0.06)] sm:rounded-[22px] sm:px-8 sm:py-9">
         <OnboardingStepIcon
           variant={
             currentStep === 0
@@ -228,21 +228,21 @@ export function OnboardingModal({
           }
         />
 
-        <div className="mt-6 text-center">
-          <h2 className="text-[28px] font-semibold tracking-[-0.02em] text-[#02051f]">
+        <div className="mt-5 text-center sm:mt-6">
+          <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-[#02051f] sm:text-[26px] lg:text-[28px]">
             {title}
           </h2>
-          <p className="mx-auto mt-3 max-w-125 text-[15px] leading-7 text-[#6d7390]">
+          <p className="mx-auto mt-2 max-w-125 text-[14px] leading-6 text-[#6d7390] sm:mt-3 sm:text-[15px] sm:leading-7">
             {description}
           </p>
         </div>
 
         {currentStep === 1 ? (
-          <div className="mx-auto mt-8 max-w-117">
+          <div className="mx-auto mt-6 max-w-117 sm:mt-8">
             <div>
               <label
                 htmlFor="onboarding-neighborhood"
-                className="mb-3 block text-[15px] font-semibold text-[#02051f]"
+                className="mb-2 block text-[14px] font-semibold text-[#02051f] sm:mb-3 sm:text-[15px]"
               >
                 Seu bairro
               </label>
@@ -252,7 +252,7 @@ export function OnboardingModal({
                   id="onboarding-neighborhood"
                   value={neighborhood}
                   onChange={(event) => setNeighborhood(event.target.value)}
-                  className="h-12 w-full appearance-none rounded-xl border border-[#edf0f4] bg-[#f3f5f8] px-4 text-[15px] text-[#6d7390] outline-none transition cursor-pointer focus:border-[#02051f]"
+                  className="h-11 w-full appearance-none rounded-lg border border-[#edf0f4] bg-[#f3f5f8] px-3 text-[14px] text-[#6d7390] outline-none transition cursor-pointer focus:border-[#02051f] sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
                 >
                   <option value="">Selecione seu bairro</option>
                   {neighborhoodOptions.map((option) => (
@@ -282,9 +282,9 @@ export function OnboardingModal({
               </div>
             </div>
 
-            <div className="mt-6 flex items-center justify-between gap-4">
+            <div className="mt-5 flex items-center justify-between gap-3 sm:mt-6 sm:gap-4">
               <div>
-                <p className="text-[15px] font-semibold text-[#02051f]">
+                <p className="text-[14px] font-semibold text-[#02051f] sm:text-[15px]">
                   Permitir geolocalização
                 </p>
               </div>
@@ -298,10 +298,10 @@ export function OnboardingModal({
         ) : null}
 
         {currentStep === 2 ? (
-          <div className="mx-auto mt-8 max-w-117">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <p className="text-[15px] font-semibold text-[#02051f]">
+          <div className="mx-auto mt-6 max-w-117 sm:mt-8">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-between gap-3 sm:gap-4">
+                <p className="text-[14px] font-semibold text-[#02051f] sm:text-[15px]">
                   Ativar notificações
                 </p>
 
@@ -311,9 +311,9 @@ export function OnboardingModal({
                 />
               </div>
 
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center justify-between gap-3 sm:gap-4">
                 <p
-                  className={`text-[15px] font-semibold ${
+                  className={`text-[14px] font-semibold sm:text-[15px] ${
                     notificationsEnabled && !isDesktop
                       ? "text-[#02051f]"
                       : "text-[#9aa1b5]"
@@ -329,9 +329,9 @@ export function OnboardingModal({
                 />
               </div>
 
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center justify-between gap-3 sm:gap-4">
                 <p
-                  className={`text-[15px] font-semibold ${
+                  className={`text-[14px] font-semibold sm:text-[15px] ${
                     notificationsEnabled ? "text-[#02051f]" : "text-[#9aa1b5]"
                   }`}
                 >
@@ -347,10 +347,10 @@ export function OnboardingModal({
             </div>
 
             {notificationsEnabled && emailNotificationsEnabled ? (
-              <div className="mt-6">
+              <div className="mt-5 sm:mt-6">
                 <label
                   htmlFor="onboarding-email"
-                  className="mb-3 block text-[15px] font-semibold text-[#02051f]"
+                  className="mb-2 block text-[14px] font-semibold text-[#02051f] sm:mb-3 sm:text-[15px]"
                 >
                   Email para receber alertas
                 </label>
@@ -361,13 +361,13 @@ export function OnboardingModal({
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="Digite seu email"
-                  className="h-12 w-full rounded-xl border border-[#edf0f4] bg-[#f3f5f8] px-4 text-[15px] text-[#02051f] outline-none transition placeholder:text-[#9aa1b5] focus:border-[#02051f]"
+                  className="h-11 w-full rounded-lg border border-[#edf0f4] bg-[#f3f5f8] px-3 text-[14px] text-[#02051f] outline-none transition placeholder:text-[#9aa1b5] focus:border-[#02051f] sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
                 />
               </div>
             ) : null}
 
             {isDesktop ? (
-              <p className="mt-4 text-[14px] leading-6 text-[#6d7390]">
+              <p className="mt-4 text-[13px] leading-5 text-[#6d7390] sm:text-[14px] sm:leading-6">
                 No desktop, o sistema utiliza somente notificações por email.
               </p>
             ) : null}
@@ -375,18 +375,18 @@ export function OnboardingModal({
         ) : null}
 
         {displayedErrorMessage ? (
-          <div className="mx-auto mt-6 max-w-117 rounded-2xl border border-[#ffd5d5] bg-[#fff3f3] px-4 py-3 text-sm text-[#c33939]">
+          <div className="mx-auto mt-5 max-w-117 rounded-xl border border-[#ffd5d5] bg-[#fff3f3] px-3 py-3 text-sm text-[#c33939] sm:mt-6 sm:rounded-2xl sm:px-4">
             {displayedErrorMessage}
           </div>
         ) : null}
 
-        <div className="mt-8 flex items-center justify-center gap-4">
+        <div className="mt-6 flex flex-col-reverse items-stretch justify-center gap-2 sm:mt-8 sm:flex-row sm:items-center sm:gap-4">
           {currentStep > 0 ? (
             <button
               type="button"
               onClick={goToPreviousStep}
               disabled={isSubmitting}
-              className="inline-flex h-11 min-w-18.5 items-center justify-center rounded-xl border border-[#d6ddd9] bg-white px-5 text-[15px] font-semibold text-[#02051f] transition hover:bg-[#f8fafb] cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex h-11 min-w-18.5 items-center justify-center rounded-lg border border-[#d6ddd9] bg-white px-4 text-[14px] font-semibold text-[#02051f] transition hover:bg-[#f8fafb] cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 sm:rounded-xl sm:px-5 sm:text-[15px]"
             >
               Voltar
             </button>
@@ -396,7 +396,7 @@ export function OnboardingModal({
             type="button"
             onClick={() => void goToNextStep()}
             disabled={isSubmitting}
-            className={`inline-flex h-11 min-w-22.5 items-center justify-center rounded-xl px-6 text-[15px] font-semibold text-white transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 ${
+            className={`inline-flex h-11 min-w-22.5 items-center justify-center rounded-lg px-5 text-[14px] font-semibold text-white transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 sm:rounded-xl sm:px-6 sm:text-[15px] ${
               isSuccessStep
                 ? "bg-[#13a36d] hover:bg-[#109561]"
                 : "bg-[#02051f] hover:bg-[#0a1030]"

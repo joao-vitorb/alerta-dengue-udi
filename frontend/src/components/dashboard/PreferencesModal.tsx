@@ -116,15 +116,15 @@ export function PreferencesModal({
       title="Preferências"
       icon={<FontAwesomeIcon icon={faSliders} className="text-[18px]" />}
     >
-      <div className="space-y-5">
+      <div className="space-y-4 sm:space-y-5">
         <div>
-          <label className="mb-2 block text-[15px] font-semibold text-[#111318]">
+          <label className="mb-2 block text-[14px] font-semibold text-[#111318] sm:text-[15px]">
             Bairro
           </label>
           <select
             value={formValues.neighborhood}
             onChange={(event) => setField("neighborhood", event.target.value)}
-            className="h-12 w-full rounded-xl border border-[#e3e7eb] bg-[#f6f7f9] px-4 text-[15px] text-[#111318] outline-none transition cursor-pointer focus:border-[#0f8f67]"
+            className="h-11 w-full rounded-lg border border-[#e3e7eb] bg-[#f6f7f9] px-3 text-[14px] text-[#111318] outline-none transition cursor-pointer focus:border-[#0f8f67] sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
           >
             {neighborhoodOptions.map((option) => (
               <option key={option} value={option}>
@@ -134,8 +134,8 @@ export function PreferencesModal({
           </select>
         </div>
 
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-[15px] font-semibold text-[#111318]">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
+          <p className="text-[14px] font-semibold text-[#111318] sm:text-[15px]">
             Ativar notificações
           </p>
 
@@ -145,9 +145,9 @@ export function PreferencesModal({
           />
         </div>
 
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
           <p
-            className={`text-[15px] font-semibold ${
+            className={`text-[14px] font-semibold sm:text-[15px] ${
               formValues.notificationsEnabled && !isDesktop
                 ? "text-[#111318]"
                 : "text-[#9aa1b5]"
@@ -163,9 +163,9 @@ export function PreferencesModal({
           />
         </div>
 
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
           <p
-            className={`text-[15px] font-semibold ${
+            className={`text-[14px] font-semibold sm:text-[15px] ${
               formValues.notificationsEnabled
                 ? "text-[#111318]"
                 : "text-[#9aa1b5]"
@@ -184,7 +184,7 @@ export function PreferencesModal({
         {formValues.notificationsEnabled &&
         formValues.emailNotificationsEnabled ? (
           <div>
-            <label className="mb-2 block text-[15px] font-semibold text-[#111318]">
+            <label className="mb-2 block text-[14px] font-semibold text-[#111318] sm:text-[15px]">
               Email
             </label>
             <input
@@ -192,28 +192,28 @@ export function PreferencesModal({
               value={formValues.email}
               onChange={(event) => setField("email", event.target.value)}
               placeholder="Digite seu email"
-              className="h-12 w-full rounded-xl border border-[#e3e7eb] bg-[#f6f7f9] px-4 text-[15px] text-[#111318] outline-none transition placeholder:text-[#9aa1b5] focus:border-[#0f8f67]"
+              className="h-11 w-full rounded-lg border border-[#e3e7eb] bg-[#f6f7f9] px-3 text-[14px] text-[#111318] outline-none transition placeholder:text-[#9aa1b5] focus:border-[#0f8f67] sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
             />
           </div>
         ) : null}
 
         {isDesktop ? (
-          <p className="text-[14px] leading-6 text-[#768093]">
+          <p className="text-[13px] leading-5 text-[#768093] sm:text-[14px] sm:leading-6">
             No desktop, o sistema usa somente notificações por email.
           </p>
         ) : null}
 
         {localErrorMessage || errorMessage ? (
-          <div className="rounded-2xl border border-[#ffd7d7] bg-[#fff2f2] px-4 py-3 text-sm text-[#bf4040]">
+          <div className="rounded-xl border border-[#ffd7d7] bg-[#fff2f2] px-3 py-3 text-sm text-[#bf4040] sm:rounded-2xl sm:px-4">
             {localErrorMessage ?? errorMessage}
           </div>
         ) : null}
 
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row sm:gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="flex h-11 items-center justify-center rounded-xl border border-[#d8dde3] bg-white px-5 text-[15px] font-semibold text-[#111318] transition cursor-pointer hover:bg-[#f7f8f9]"
+            className="flex h-11 items-center justify-center rounded-lg border border-[#d8dde3] bg-white px-4 text-[14px] font-semibold text-[#111318] transition cursor-pointer hover:bg-[#f7f8f9] sm:rounded-xl sm:px-5 sm:text-[15px]"
           >
             Fechar
           </button>
@@ -222,7 +222,7 @@ export function PreferencesModal({
             type="button"
             onClick={() => void handleSave()}
             disabled={isSubmitting}
-            className="flex h-11 items-center justify-center rounded-xl bg-[#02051f] px-6 text-[15px] font-semibold text-white transition cursor-pointer hover:bg-[#0a1030] disabled:cursor-not-allowed disabled:opacity-70"
+            className="flex h-11 items-center justify-center rounded-lg bg-[#02051f] px-5 text-[14px] font-semibold text-white transition cursor-pointer hover:bg-[#0a1030] disabled:cursor-not-allowed disabled:opacity-70 sm:rounded-xl sm:px-6 sm:text-[15px]"
           >
             {isSubmitting ? "Salvando..." : "Salvar"}
           </button>

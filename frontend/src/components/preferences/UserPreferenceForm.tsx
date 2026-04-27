@@ -95,11 +95,11 @@ export function UserPreferenceForm({
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
+    <form className="space-y-4 sm:space-y-5" onSubmit={handleSubmit}>
       <div className="space-y-2">
         <label
           htmlFor="neighborhood"
-          className="text-sm font-medium text-slate-700"
+          className="text-[13px] font-medium text-slate-700 sm:text-sm"
         >
           Bairro
         </label>
@@ -113,7 +113,7 @@ export function UserPreferenceForm({
               neighborhood: event.target.value,
             }))
           }
-          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px] text-slate-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm"
           required
         >
           {neighborhoodOptions.map((neighborhood) => (
@@ -125,7 +125,10 @@ export function UserPreferenceForm({
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium text-slate-700">
+        <label
+          htmlFor="email"
+          className="text-[13px] font-medium text-slate-700 sm:text-sm"
+        >
           Email
         </label>
 
@@ -135,12 +138,12 @@ export function UserPreferenceForm({
           value={formValues.email}
           onChange={(event) => handleEmailChange(event.target.value)}
           placeholder="seuemail@exemplo.com"
-          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px] text-slate-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm"
         />
       </div>
 
       <div className="space-y-3">
-        <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+        <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-3">
           <input
             type="checkbox"
             checked={formValues.notificationsEnabled}
@@ -150,18 +153,18 @@ export function UserPreferenceForm({
             className="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
           />
           <div>
-            <p className="text-sm font-medium text-slate-800">
+            <p className="text-[13px] font-medium text-slate-800 sm:text-sm">
               Receber alertas preventivos
             </p>
-            <p className="mt-1 text-sm leading-6 text-slate-600">
+            <p className="mt-1 text-[12px] leading-5 text-slate-600 sm:text-sm sm:leading-6">
               Ative para receber avisos ligados a clima e prevenção.
             </p>
           </div>
         </label>
       </div>
 
-      <div className="space-y-3">
-        <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <div className="space-y-2 sm:space-y-3">
+        <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-3">
           <input
             type="checkbox"
             checked={formValues.emailNotificationsEnabled}
@@ -176,10 +179,10 @@ export function UserPreferenceForm({
           />
 
           <span>
-            <span className="block text-sm font-medium text-slate-800">
+            <span className="block text-[13px] font-medium text-slate-800 sm:text-sm">
               Avisos por email
             </span>
-            <span className="block text-sm leading-6 text-slate-600">
+            <span className="block text-[12px] leading-5 text-slate-600 sm:text-sm sm:leading-6">
               Disponível quando alertas estiverem ativos e um email for
               informado.
             </span>
@@ -187,7 +190,7 @@ export function UserPreferenceForm({
         </label>
 
         {deviceType === "MOBILE" ? (
-          <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-3">
             <input
               type="checkbox"
               checked={formValues.pushNotificationsEnabled}
@@ -202,21 +205,21 @@ export function UserPreferenceForm({
             />
 
             <span>
-              <span className="block text-sm font-medium text-slate-800">
+              <span className="block text-[13px] font-medium text-slate-800 sm:text-sm">
                 Notificações push no celular
               </span>
-              <span className="block text-sm leading-6 text-slate-600">
+              <span className="block text-[12px] leading-5 text-slate-600 sm:text-sm sm:leading-6">
                 A disponibilidade do push será implementada na etapa específica
                 de notificações.
               </span>
             </span>
           </label>
         ) : (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-sm font-medium text-slate-800">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
+            <p className="text-[13px] font-medium text-slate-800 sm:text-sm">
               Acesso em desktop
             </p>
-            <p className="mt-1 text-sm leading-6 text-slate-600">
+            <p className="mt-1 text-[12px] leading-5 text-slate-600 sm:text-sm sm:leading-6">
               No computador, o sistema usará apenas email. Push ficará
               desativado.
             </p>
@@ -225,7 +228,7 @@ export function UserPreferenceForm({
       </div>
 
       {errorMessage ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[13px] text-rose-700 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm">
           {errorMessage}
         </div>
       ) : null}
@@ -233,7 +236,7 @@ export function UserPreferenceForm({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="inline-flex w-full items-center justify-center rounded-2xl bg-sky-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
+        className="inline-flex w-full items-center justify-center rounded-xl bg-sky-600 px-4 py-2.5 text-[13px] font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70 sm:rounded-2xl sm:px-5 sm:py-3 sm:text-sm"
       >
         {isSubmitting ? "Salvando..." : submitLabel}
       </button>

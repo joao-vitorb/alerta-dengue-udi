@@ -129,8 +129,8 @@ export function MapPage() {
   }, [alertsData, isLoadingWeather, weatherErrorMessage]);
 
   return (
-    <main className="min-h-screen bg-[#eaf6f2] px-5 py-3">
-      <div className="mx-auto max-w-257.5">
+    <main className="min-h-screen bg-[#eaf6f2] px-3 py-3 sm:px-5 sm:py-4 lg:px-8 lg:py-5">
+      <div className="mx-auto w-full max-w-257.5">
         <OnboardingModal
           isOpen={isOnboardingOpen}
           deviceType={experience?.deviceType ?? "DESKTOP"}
@@ -176,14 +176,14 @@ export function MapPage() {
 
         <DashboardHeader onOpenPreferences={() => setIsPreferencesOpen(true)} />
 
-        <div className="mt-4">
+        <div className="mt-3 sm:mt-4">
           <DashboardAlertBanner
             title={dynamicAlert.title}
             description={dynamicAlert.description}
           />
         </div>
 
-        <section className="mt-4 grid gap-4 lg:grid-cols-[1fr_332px]">
+        <section className="mt-3 grid gap-3 sm:mt-4 sm:gap-4 lg:grid-cols-[1fr_332px]">
           <div>
             <MapCanvas
               selectedNeighborhood={experience?.neighborhood}
@@ -192,7 +192,7 @@ export function MapPage() {
             />
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <DashboardToolsPanel
               onOpenClimate={() => setIsClimateOpen(true)}
               onOpenNearbyUnits={() => {

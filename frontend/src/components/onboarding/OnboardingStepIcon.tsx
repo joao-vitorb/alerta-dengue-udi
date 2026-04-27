@@ -27,10 +27,10 @@ function getIconByVariant(variant: OnboardingStepIconProps["variant"]) {
 
 function getWrapperClasses(variant: OnboardingStepIconProps["variant"]) {
   if (variant === "success") {
-    return "mx-auto flex h-16 w-16 items-center justify-center rounded-full border-[4px] border-[#13a36d] text-[30px] text-[#13a36d]";
+    return "mx-auto flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-[#13a36d] text-[22px] text-[#13a36d] sm:h-14 sm:w-14 sm:border-[4px] sm:text-[26px] lg:h-16 lg:w-16 lg:text-[30px]";
   }
 
-  return "mx-auto flex items-center justify-center text-[52px] text-[#13a36d]";
+  return "mx-auto flex items-center justify-center text-[40px] text-[#13a36d] sm:text-[46px] lg:text-[52px]";
 }
 
 export function OnboardingStepIcon({ variant }: OnboardingStepIconProps) {
