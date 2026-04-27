@@ -1,11 +1,19 @@
 import type { Prisma } from "../generated/prisma/client";
-import { prisma } from "../lib/prisma";
 import { AppError } from "../errors/AppError";
+import { prisma } from "../lib/prisma";
 import type {
   HealthUnitQueryInput,
   RecommendedHealthUnitQueryInput,
 } from "../schemas/healthUnitSchemas";
 import { calculateDistanceInKm } from "../utils/distance";
+
+type HealthUnit = Awaited<
+  ReturnType<typeof prisma.healthUnit.findMany>
+>[number];
+
+type HealthUnitWithDistance = HealthUnit & {
+  distanceKm: number | null;
+};
 
 function normalizeText(value: string | null | undefined) {
   return (value ?? "")
@@ -15,28 +23,28 @@ function normalizeText(value: string | null | undefined) {
     .replace(/\p{Diacritic}/gu, "");
 }
 
-type HealthUnitWithDistance = Awaited<
-  ReturnType<typeof prisma.healthUnit.findMany>
->[number] & {
-  distanceKm: number | null;
-};
-
-export async function listHealthUnits(filters: HealthUnitQueryInput) {
-  const where: Prisma.HealthUnitWhereInput = {
-    isActive: true,
-  };
-
-  if (filters.unitType) {
-    where.unitType = filters.unitType;
+function buildSearchFilter(
+  search: string | undefined,
+): Prisma.HealthUnitWhereInput["OR"] {
+  if (!search) {
+    return undefined;
   }
 
-  if (filters.careLevel) {
-    where.careLevel = filters.careLevel;
-  }
+  return [
+    { name: { contains: search, mode: "insensitive" } },
+    { address: { contains: search, mode: "insensitive" } },
+    { neighborhood: { contains: search, mode: "insensitive" } },
+  ];
+}
 
-  if (filters.sector) {
-    where.sector = filters.sector;
-  }
+function buildHealthUnitWhere(
+  filters: HealthUnitQueryInput,
+): Prisma.HealthUnitWhereInput {
+  const where: Prisma.HealthUnitWhereInput = { isActive: true };
+
+  if (filters.unitType) where.unitType = filters.unitType;
+  if (filters.careLevel) where.careLevel = filters.careLevel;
+  if (filters.sector) where.sector = filters.sector;
 
   if (filters.neighborhood) {
     where.neighborhood = {
@@ -45,34 +53,93 @@ export async function listHealthUnits(filters: HealthUnitQueryInput) {
     };
   }
 
-  if (filters.search) {
-    where.OR = [
-      {
-        name: {
-          contains: filters.search,
-          mode: "insensitive",
-        },
-      },
-      {
-        address: {
-          contains: filters.search,
-          mode: "insensitive",
-        },
-      },
-      {
-        neighborhood: {
-          contains: filters.search,
-          mode: "insensitive",
-        },
-      },
-    ];
+  const searchFilter = buildSearchFilter(filters.search);
+
+  if (searchFilter) {
+    where.OR = searchFilter;
   }
 
+  return where;
+}
+
+function attachDistance(
+  unit: HealthUnit,
+  origin: { latitude?: number; longitude?: number },
+): HealthUnitWithDistance {
+  if (
+    origin.latitude === undefined ||
+    origin.longitude === undefined ||
+    unit.latitude === null ||
+    unit.longitude === null
+  ) {
+    return { ...unit, distanceKm: null };
+  }
+
+  const distance = calculateDistanceInKm(
+    origin.latitude,
+    origin.longitude,
+    unit.latitude,
+    unit.longitude,
+  );
+
+  return { ...unit, distanceKm: Number(distance.toFixed(2)) };
+}
+
+function compareByNeighborhoodMatch(
+  first: HealthUnitWithDistance,
+  second: HealthUnitWithDistance,
+  normalizedNeighborhood: string,
+): number {
+  if (!normalizedNeighborhood) return 0;
+
+  const firstMatches =
+    normalizeText(first.neighborhood) === normalizedNeighborhood ? 1 : 0;
+  const secondMatches =
+    normalizeText(second.neighborhood) === normalizedNeighborhood ? 1 : 0;
+
+  return secondMatches - firstMatches;
+}
+
+function compareByDistance(
+  first: HealthUnitWithDistance,
+  second: HealthUnitWithDistance,
+): number {
+  const firstHas = first.distanceKm !== null;
+  const secondHas = second.distanceKm !== null;
+
+  if (firstHas && secondHas) {
+    return (first.distanceKm ?? 0) - (second.distanceKm ?? 0);
+  }
+
+  if (firstHas !== secondHas) {
+    return firstHas ? -1 : 1;
+  }
+
+  return 0;
+}
+
+function buildRecommendationComparator(normalizedNeighborhood: string) {
+  return (first: HealthUnitWithDistance, second: HealthUnitWithDistance) => {
+    const byNeighborhood = compareByNeighborhoodMatch(
+      first,
+      second,
+      normalizedNeighborhood,
+    );
+
+    if (byNeighborhood !== 0) return byNeighborhood;
+
+    const byDistance = compareByDistance(first, second);
+
+    if (byDistance !== 0) return byDistance;
+
+    return first.name.localeCompare(second.name);
+  };
+}
+
+export async function listHealthUnits(filters: HealthUnitQueryInput) {
   const items = await prisma.healthUnit.findMany({
-    where,
-    orderBy: {
-      name: "asc",
-    },
+    where: buildHealthUnitWhere(filters),
+    orderBy: { name: "asc" },
   });
 
   return {
@@ -83,10 +150,7 @@ export async function listHealthUnits(filters: HealthUnitQueryInput) {
 
 export async function getHealthUnitById(healthUnitId: string) {
   const healthUnit = await prisma.healthUnit.findFirst({
-    where: {
-      id: healthUnitId,
-      isActive: true,
-    },
+    where: { id: healthUnitId, isActive: true },
   });
 
   if (!healthUnit) {
@@ -99,83 +163,29 @@ export async function getHealthUnitById(healthUnitId: string) {
 export async function listRecommendedHealthUnits(
   filters: RecommendedHealthUnitQueryInput,
 ) {
-  const where: Prisma.HealthUnitWhereInput = {
-    isActive: true,
-  };
+  const where: Prisma.HealthUnitWhereInput = { isActive: true };
 
   if (filters.careLevel) {
     where.careLevel = filters.careLevel;
   }
 
-  const items = await prisma.healthUnit.findMany({
-    where,
-  });
+  const items = await prisma.healthUnit.findMany({ where });
+
+  const itemsWithDistance = items.map((item) =>
+    attachDistance(item, {
+      latitude: filters.latitude,
+      longitude: filters.longitude,
+    }),
+  );
 
   const normalizedNeighborhood = normalizeText(filters.neighborhood);
-
-  const itemsWithDistance: HealthUnitWithDistance[] = items.map((item) => {
-    if (
-      filters.latitude === undefined ||
-      filters.longitude === undefined ||
-      item.latitude === null ||
-      item.longitude === null
-    ) {
-      return {
-        ...item,
-        distanceKm: null,
-      };
-    }
-
-    return {
-      ...item,
-      distanceKm: Number(
-        calculateDistanceInKm(
-          filters.latitude,
-          filters.longitude,
-          item.latitude,
-          item.longitude,
-        ).toFixed(2),
-      ),
-    };
-  });
-
-  const sortedItems = [...itemsWithDistance].sort((first, second) => {
-    const firstNeighborhoodMatch =
-      normalizedNeighborhood &&
-      normalizeText(first.neighborhood) === normalizedNeighborhood
-        ? 1
-        : 0;
-
-    const secondNeighborhoodMatch =
-      normalizedNeighborhood &&
-      normalizeText(second.neighborhood) === normalizedNeighborhood
-        ? 1
-        : 0;
-
-    if (firstNeighborhoodMatch !== secondNeighborhoodMatch) {
-      return secondNeighborhoodMatch - firstNeighborhoodMatch;
-    }
-
-    const firstHasDistance = first.distanceKm !== null;
-    const secondHasDistance = second.distanceKm !== null;
-
-    if (firstHasDistance && secondHasDistance) {
-      const firstDistance = first.distanceKm ?? Number.POSITIVE_INFINITY;
-      const secondDistance = second.distanceKm ?? Number.POSITIVE_INFINITY;
-
-      return firstDistance - secondDistance;
-    }
-
-    if (firstHasDistance !== secondHasDistance) {
-      return firstHasDistance ? -1 : 1;
-    }
-
-    return first.name.localeCompare(second.name);
-  });
+  const comparator = buildRecommendationComparator(normalizedNeighborhood);
+  const sortedItems = [...itemsWithDistance].sort(comparator);
+  const limitedItems = sortedItems.slice(0, filters.limit);
 
   return {
-    items: sortedItems.slice(0, filters.limit),
-    total: Math.min(sortedItems.length, filters.limit),
+    items: limitedItems,
+    total: limitedItems.length,
     context: {
       latitude: filters.latitude ?? null,
       longitude: filters.longitude ?? null,

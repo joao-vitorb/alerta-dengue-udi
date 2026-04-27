@@ -1,8 +1,14 @@
+import type { UserPreference } from "../generated/prisma/client";
 import { AppError } from "../errors/AppError";
 import { prisma } from "../lib/prisma";
-import { getPreventiveAlertsByNeighborhood } from "./preventiveAlertService";
 import { sendEmailNotification } from "./emailNotificationService";
+import { getPreventiveAlertsByNeighborhood } from "./preventiveAlertService";
 import { sendPushNotification } from "./pushNotificationService";
+
+type AlertSummary = {
+  title: string;
+  recommendation: string;
+};
 
 type NotificationChannelResult = {
   attempted: boolean;
@@ -11,16 +17,33 @@ type NotificationChannelResult = {
   reason: string | null;
 };
 
-function buildEmailText(input: {
+const DISABLED_EMAIL_RESULT: NotificationChannelResult = {
+  attempted: false,
+  delivered: false,
+  simulated: false,
+  reason: "Email channel not enabled",
+};
+
+const DISABLED_PUSH_RESULT: NotificationChannelResult = {
+  attempted: false,
+  delivered: false,
+  simulated: false,
+  reason: "Push channel not enabled",
+};
+
+const MISSING_PUSH_SUBSCRIPTION_RESULT: NotificationChannelResult = {
+  attempted: false,
+  delivered: false,
+  simulated: false,
+  reason: "Push subscription not found",
+};
+
+function buildEmailBody(input: {
   neighborhood: string;
-  alerts: Array<{
-    title: string;
-    recommendation: string;
-  }>;
+  alerts: AlertSummary[];
 }) {
   const headline =
     input.alerts[0]?.title ?? "Atualização preventiva disponível";
-
   const recommendations = input.alerts
     .slice(0, 3)
     .map(
@@ -52,92 +75,89 @@ function buildPushPayload(input: {
   };
 }
 
-export async function sendTestNotification(anonymousId: string) {
-  const userPreference = await prisma.userPreference.findUnique({
-    where: {
-      anonymousId,
-    },
+async function sendTestEmail(
+  preference: UserPreference,
+  alerts: AlertSummary[],
+): Promise<NotificationChannelResult> {
+  if (!preference.emailNotificationsEnabled || !preference.email) {
+    return DISABLED_EMAIL_RESULT;
+  }
+
+  return sendEmailNotification({
+    to: preference.email,
+    subject: `Alerta Dengue UDI - ${preference.neighborhood}`,
+    text: buildEmailBody({
+      neighborhood: preference.neighborhood,
+      alerts,
+    }),
+    neighborhood: preference.neighborhood,
+  });
+}
+
+async function sendTestPush(
+  preference: UserPreference,
+  primaryAlert: AlertSummary,
+): Promise<NotificationChannelResult> {
+  if (
+    preference.deviceType !== "MOBILE" ||
+    !preference.pushNotificationsEnabled
+  ) {
+    return DISABLED_PUSH_RESULT;
+  }
+
+  const subscription = await prisma.pushSubscription.findUnique({
+    where: { anonymousId: preference.anonymousId },
   });
 
-  if (!userPreference) {
+  if (!subscription) {
+    return MISSING_PUSH_SUBSCRIPTION_RESULT;
+  }
+
+  return sendPushNotification(
+    {
+      endpoint: subscription.endpoint,
+      p256dh: subscription.p256dh,
+      auth: subscription.auth,
+    },
+    buildPushPayload({
+      neighborhood: preference.neighborhood,
+      title: primaryAlert.title,
+      recommendation: primaryAlert.recommendation,
+    }),
+  );
+}
+
+export async function sendTestNotification(anonymousId: string) {
+  const preference = await prisma.userPreference.findUnique({
+    where: { anonymousId },
+  });
+
+  if (!preference) {
     throw new AppError("User preference not found", 404);
   }
 
   const alertsResult = await getPreventiveAlertsByNeighborhood(
-    userPreference.neighborhood,
+    preference.neighborhood,
   );
+  const primaryAlert = alertsResult.alerts[0];
 
-  const firstAlert = alertsResult.alerts[0];
-
-  if (!firstAlert) {
+  if (!primaryAlert) {
     throw new AppError("No preventive alerts available", 404);
   }
 
-  let emailResult: NotificationChannelResult = {
-    attempted: false,
-    delivered: false,
-    simulated: false,
-    reason: "Email channel not enabled",
-  };
+  const alerts: AlertSummary[] = alertsResult.alerts.map((alert) => ({
+    title: alert.title,
+    recommendation: alert.recommendation,
+  }));
 
-  if (userPreference.emailNotificationsEnabled && userPreference.email) {
-    emailResult = await sendEmailNotification({
-      to: userPreference.email,
-      subject: `Alerta Dengue UDI - ${userPreference.neighborhood}`,
-      text: buildEmailText({
-        neighborhood: userPreference.neighborhood,
-        alerts: alertsResult.alerts.map((alert) => ({
-          title: alert.title,
-          recommendation: alert.recommendation,
-        })),
-      }),
-      neighborhood: userPreference.neighborhood,
-    });
-  }
-
-  let pushResult: NotificationChannelResult = {
-    attempted: false,
-    delivered: false,
-    simulated: false,
-    reason: "Push channel not enabled",
-  };
-
-  if (
-    userPreference.deviceType === "MOBILE" &&
-    userPreference.pushNotificationsEnabled
-  ) {
-    const pushSubscription = await prisma.pushSubscription.findUnique({
-      where: {
-        anonymousId,
-      },
-    });
-
-    if (!pushSubscription) {
-      pushResult = {
-        attempted: false,
-        delivered: false,
-        simulated: false,
-        reason: "Push subscription not found",
-      };
-    } else {
-      pushResult = await sendPushNotification(
-        {
-          endpoint: pushSubscription.endpoint,
-          p256dh: pushSubscription.p256dh,
-          auth: pushSubscription.auth,
-        },
-        buildPushPayload({
-          neighborhood: userPreference.neighborhood,
-          title: firstAlert.title,
-          recommendation: firstAlert.recommendation,
-        }),
-      );
-    }
-  }
+  const [emailResult, pushResult] = await Promise.all([
+    sendTestEmail(preference, alerts),
+    sendTestPush(preference, primaryAlert),
+  ]);
 
   return {
     anonymousId,
-    neighborhood: userPreference.neighborhood,
+    neighborhood: preference.neighborhood,
     alertsCount: alertsResult.alerts.length,
     email: emailResult,
     push: pushResult,

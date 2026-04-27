@@ -1,4 +1,5 @@
 import { env } from "../config/env";
+import { sendEmailJsMessage } from "../infra/emailJsClient";
 
 type SendEmailNotificationInput = {
   to: string;
@@ -14,24 +15,20 @@ type NotificationDeliveryResult = {
   reason: string | null;
 };
 
-type EmailJsResponse = {
-  status?: number;
-  text?: string;
-};
-
-function isEmailJsConfigured() {
-  return Boolean(
-    env.emailJsServiceId &&
-    env.emailJsTemplateId &&
-    env.emailJsPublicKey &&
-    env.emailJsPrivateKey,
-  );
-}
-
 export async function sendEmailNotification(
   input: SendEmailNotificationInput,
 ): Promise<NotificationDeliveryResult> {
-  if (!isEmailJsConfigured()) {
+  const result = await sendEmailJsMessage({
+    templateId: env.emailJs.templateId,
+    templateParams: {
+      to_email: input.to,
+      subject: input.subject,
+      message: input.text,
+      neighborhood: input.neighborhood,
+    },
+  });
+
+  if (result.reason === "EMAILJS_NOT_CONFIGURED") {
     return {
       attempted: true,
       delivered: false,
@@ -40,44 +37,14 @@ export async function sendEmailNotification(
     };
   }
 
-  const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      service_id: env.emailJsServiceId,
-      template_id: env.emailJsTemplateId,
-      user_id: env.emailJsPublicKey,
-      accessToken: env.emailJsPrivateKey,
-      template_params: {
-        to_email: input.to,
-        subject: input.subject,
-        message: input.text,
-        neighborhood: input.neighborhood,
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response
-      .text()
-      .catch(() => "EmailJS request failed");
-
-    return {
-      attempted: true,
-      delivered: false,
-      simulated: false,
-      reason: errorText,
-    };
-  }
-
-  const data = (await response.text().catch(() => "OK")) as string;
-
   return {
     attempted: true,
-    delivered: true,
+    delivered: result.delivered,
     simulated: false,
-    reason: data || null,
+    reason: result.delivered
+      ? typeof result.metadata?.response === "string"
+        ? result.metadata.response
+        : null
+      : (result.reason ?? "EmailJS request failed"),
   };
 }

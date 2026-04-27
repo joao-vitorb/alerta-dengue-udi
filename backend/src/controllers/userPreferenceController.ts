@@ -1,107 +1,44 @@
-import type { NextFunction, Request, Response } from "express";
-import { AppError } from "../errors/AppError";
-import {
-  anonymousIdParamSchema,
-  createUserPreferenceSchema,
-  updateUserPreferenceSchema,
+import type { Request, Response } from "express";
+import type {
+  CreateUserPreferenceInput,
+  UpdateUserPreferenceInput,
 } from "../schemas/userPreferenceSchemas";
 import {
   getUserPreferenceByAnonymousId,
   updateUserPreference,
   upsertUserPreference,
 } from "../services/userPreferenceService";
-import { formatZodErrors } from "../utils/formatZodErrors";
 
 export async function getUserPreferenceByAnonymousIdController(
   request: Request,
   response: Response,
-  next: NextFunction,
 ) {
-  const parsedParams = anonymousIdParamSchema.safeParse(request.params);
+  const { anonymousId } = request.params as { anonymousId: string };
+  const userPreference = await getUserPreferenceByAnonymousId(anonymousId);
 
-  if (!parsedParams.success) {
-    return next(
-      new AppError(
-        "Invalid route parameters",
-        400,
-        formatZodErrors(parsedParams.error),
-      ),
-    );
-  }
-
-  try {
-    const userPreference = await getUserPreferenceByAnonymousId(
-      parsedParams.data.anonymousId,
-    );
-
-    return response.status(200).json(userPreference);
-  } catch (error) {
-    return next(error);
-  }
+  return response.status(200).json(userPreference);
 }
 
 export async function upsertUserPreferenceController(
   request: Request,
   response: Response,
-  next: NextFunction,
 ) {
-  const parsedBody = createUserPreferenceSchema.safeParse(request.body);
+  const userPreference = await upsertUserPreference(
+    request.body as CreateUserPreferenceInput,
+  );
 
-  if (!parsedBody.success) {
-    return next(
-      new AppError(
-        "Invalid request body",
-        400,
-        formatZodErrors(parsedBody.error),
-      ),
-    );
-  }
-
-  try {
-    const userPreference = await upsertUserPreference(parsedBody.data);
-
-    return response.status(200).json(userPreference);
-  } catch (error) {
-    return next(error);
-  }
+  return response.status(200).json(userPreference);
 }
 
 export async function updateUserPreferenceController(
   request: Request,
   response: Response,
-  next: NextFunction,
 ) {
-  const parsedParams = anonymousIdParamSchema.safeParse(request.params);
-  const parsedBody = updateUserPreferenceSchema.safeParse(request.body);
+  const { anonymousId } = request.params as { anonymousId: string };
+  const userPreference = await updateUserPreference(
+    anonymousId,
+    request.body as UpdateUserPreferenceInput,
+  );
 
-  if (!parsedParams.success) {
-    return next(
-      new AppError(
-        "Invalid route parameters",
-        400,
-        formatZodErrors(parsedParams.error),
-      ),
-    );
-  }
-
-  if (!parsedBody.success) {
-    return next(
-      new AppError(
-        "Invalid request body",
-        400,
-        formatZodErrors(parsedBody.error),
-      ),
-    );
-  }
-
-  try {
-    const userPreference = await updateUserPreference(
-      parsedParams.data.anonymousId,
-      parsedBody.data,
-    );
-
-    return response.status(200).json(userPreference);
-  } catch (error) {
-    return next(error);
-  }
+  return response.status(200).json(userPreference);
 }

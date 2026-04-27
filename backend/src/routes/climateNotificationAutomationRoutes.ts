@@ -1,24 +1,21 @@
 import { Router } from "express";
 import { runAutomatedClimateNotificationCycle } from "../services/climateNotificationAutomationService";
+import { asyncHandler } from "../utils/asyncHandler";
 
 const climateNotificationAutomationRouter = Router();
 
 climateNotificationAutomationRouter.post(
   "/climate-notifications/run",
-  async (request, response, next) => {
-    try {
-      const dryRun = request.query.dryRun === "true";
+  asyncHandler(async (request, response) => {
+    const dryRun = request.query.dryRun === "true";
 
-      const result = await runAutomatedClimateNotificationCycle({
-        dryRun,
-        source: "manual",
-      });
+    const result = await runAutomatedClimateNotificationCycle({
+      dryRun,
+      source: "manual",
+    });
 
-      return response.status(200).json(result);
-    } catch (error) {
-      return next(error);
-    }
-  },
+    return response.status(200).json(result);
+  }),
 );
 
 export { climateNotificationAutomationRouter };
