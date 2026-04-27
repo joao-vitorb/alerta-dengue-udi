@@ -14,10 +14,12 @@ export function DashboardToolsPanel({
   onOpenDiagnosis,
 }: DashboardToolsPanelProps) {
   return (
-    <section className="rounded-[18px] border border-[#d8dcd8] bg-white p-4">
-      <h2 className="text-[18px] font-semibold text-[#1a1c21]">Ferramentas</h2>
+    <section className="rounded-[14px] border border-[#d8dcd8] bg-white p-3 sm:rounded-[18px] sm:p-4">
+      <h2 className="text-[16px] font-semibold text-[#1a1c21] sm:text-[17px] lg:text-[18px]">
+        Ferramentas
+      </h2>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-3 space-y-2 sm:mt-4 sm:space-y-3">
         <DashboardToolButton
           title="Clima"
           description="Condições atuais"

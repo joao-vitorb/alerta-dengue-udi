@@ -66,17 +66,17 @@ export function VirtualDiagnosisModal({
       title="Diagnóstico Virtual"
       icon={<FontAwesomeIcon icon={faFileLines} className="text-[18px]" />}
     >
-      <section className="rounded-[18px] border border-[#b9d5ff] bg-[#eef5ff] px-4 py-4">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 text-[18px] text-[#2868ff]">
+      <section className="rounded-[14px] border border-[#b9d5ff] bg-[#eef5ff] px-3 py-3 sm:rounded-[18px] sm:px-4 sm:py-4">
+        <div className="flex items-start gap-2 sm:gap-3">
+          <span className="mt-0.5 text-[16px] text-[#2868ff] sm:text-[18px]">
             <FontAwesomeIcon icon={faCircleInfo} />
           </span>
 
           <div>
-            <p className="text-[18px] font-semibold text-[#204bb5]">
+            <p className="text-[15px] font-semibold text-[#204bb5] sm:text-[16px] lg:text-[18px]">
               Importante
             </p>
-            <p className="mt-1 text-[14px] leading-6 text-[#3156b5]">
+            <p className="mt-1 text-[13px] leading-5 text-[#3156b5] sm:text-[14px] sm:leading-6">
               Este é apenas um diagnóstico preliminar. Sempre consulte um médico
               para um diagnóstico preciso.
             </p>
@@ -84,16 +84,16 @@ export function VirtualDiagnosisModal({
         </div>
       </section>
 
-      <div className="mt-5">
-        <p className="text-[17px] text-[#111318]">
+      <div className="mt-4 sm:mt-5">
+        <p className="text-[15px] text-[#111318] sm:text-[16px] lg:text-[17px]">
           Selecione os sintomas que você está sentindo:
         </p>
 
-        <div className="mt-4 space-y-3">
+        <div className="mt-3 space-y-2 sm:mt-4 sm:space-y-3">
           {symptomOptions.map((item) => (
             <label
               key={item.key}
-              className="flex items-center gap-3 text-[16px] text-[#111318]"
+              className="flex items-center gap-2 text-[14px] text-[#111318] sm:gap-3 sm:text-[15px] lg:text-[16px]"
             >
               <input
                 type="checkbox"
@@ -101,7 +101,7 @@ export function VirtualDiagnosisModal({
                 onChange={(event) =>
                   setSymptomValue(item.key, event.target.checked)
                 }
-                className="h-5 w-5 rounded border border-[#d3d8de] accent-[#12b58a]"
+                className="h-4 w-4 rounded border border-[#d3d8de] accent-[#12b58a] sm:h-5 sm:w-5"
               />
               <span>{item.label}</span>
             </label>
@@ -110,19 +110,27 @@ export function VirtualDiagnosisModal({
       </div>
 
       {errorMessage ? (
-        <div className="mt-5 rounded-2xl border border-[#ffd7d7] bg-[#fff2f2] px-4 py-3 text-sm text-[#bf4040]">
+        <div className="mt-4 rounded-xl border border-[#ffd7d7] bg-[#fff2f2] px-3 py-3 text-sm text-[#bf4040] sm:mt-5 sm:rounded-2xl sm:px-4">
           {errorMessage}
         </div>
       ) : null}
 
       {result ? (
         <section
-          className={`mt-5 rounded-[18px] border px-4 py-4 ${getResultTone(result.classification)}`}
+          className={`mt-4 rounded-[14px] border px-3 py-3 sm:mt-5 sm:rounded-[18px] sm:px-4 sm:py-4 ${getResultTone(result.classification)}`}
         >
-          <p className="text-[18px] font-semibold">{result.headline}</p>
-          <p className="mt-2 text-[14px] leading-6">{result.message}</p>
-          <p className="mt-3 text-[14px] leading-6">{result.recommendation}</p>
-          <p className="mt-3 text-[14px]">Sintomas marcados: {selectedCount}</p>
+          <p className="text-[15px] font-semibold sm:text-[16px] lg:text-[18px]">
+            {result.headline}
+          </p>
+          <p className="mt-2 text-[13px] leading-5 sm:text-[14px] sm:leading-6">
+            {result.message}
+          </p>
+          <p className="mt-3 text-[13px] leading-5 sm:text-[14px] sm:leading-6">
+            {result.recommendation}
+          </p>
+          <p className="mt-3 text-[13px] sm:text-[14px]">
+            Sintomas marcados: {selectedCount}
+          </p>
         </section>
       ) : null}
 
@@ -130,7 +138,7 @@ export function VirtualDiagnosisModal({
         type="button"
         onClick={() => void submit()}
         disabled={isSubmitting}
-        className="mt-6 flex h-12 w-full items-center justify-center rounded-xl bg-[#88ccb8] text-[18px] font-semibold text-white transition hover:bg-[#76c3ad] disabled:cursor-not-allowed disabled:opacity-70"
+        className="mt-5 flex h-11 w-full items-center justify-center rounded-xl bg-[#88ccb8] text-[15px] font-semibold text-white transition hover:bg-[#76c3ad] disabled:cursor-not-allowed disabled:opacity-70 sm:mt-6 sm:h-12 sm:text-[16px] lg:text-[18px]"
       >
         {isSubmitting ? "Analisando..." : "Analisar sintomas"}
       </button>

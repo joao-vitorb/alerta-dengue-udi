@@ -16,13 +16,17 @@ export function DashboardToolButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left text-white transition cursor-pointer hover:scale-[1.01] bg-[linear-gradient(90deg,#08c97a_0%,#10c0b0_100%)]`}
+      className={`flex w-full items-center gap-2 rounded-xl px-3 py-3 text-left text-white transition cursor-pointer hover:scale-[1.01] bg-[linear-gradient(90deg,#08c97a_0%,#10c0b0_100%)] sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-4`}
     >
       <span className="shrink-0">{icon}</span>
 
       <div>
-        <p className="text-[18px] font-semibold leading-none">{title}</p>
-        <p className="mt-1 text-[13px] text-white/90">{description}</p>
+        <p className="text-[15px] font-semibold leading-none sm:text-[16px] lg:text-[18px]">
+          {title}
+        </p>
+        <p className="mt-1 text-[12px] text-white/90 sm:text-[13px]">
+          {description}
+        </p>
       </div>
     </button>
   );
