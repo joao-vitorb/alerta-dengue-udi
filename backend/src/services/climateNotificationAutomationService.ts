@@ -1,3 +1,4 @@
+import { env } from "../config/env";
 import { prisma } from "../lib/prisma";
 import {
   createClimateNotificationLog,
@@ -25,14 +26,16 @@ type ActiveUserPreference = {
   pushNotificationsEnabled: boolean;
 };
 
+type RunSource = "manual" | "scheduler";
+
 type RunOptions = {
   dryRun?: boolean;
-  source?: "manual" | "scheduler";
+  source?: RunSource;
 };
 
 type RunSummary = {
   dryRun: boolean;
-  source: "manual" | "scheduler";
+  source: RunSource;
   neighborhoodsEvaluated: number;
   neighborhoodsTriggered: number;
   usersEvaluated: number;
@@ -46,9 +49,12 @@ type RunSummary = {
   triggeredNeighborhoods: string[];
 };
 
-const defaultIntervalMinutes = 30;
-const defaultStartupDelayMs = 10000;
-const emailSendSpacingMs = 1100;
+type WeatherSummaryForRule = {
+  probability: number | null;
+  recentRainMm: number;
+};
+
+const EMAIL_SEND_SPACING_MS = 1100;
 
 let schedulerTimer: NodeJS.Timeout | null = null;
 let isRunning = false;
@@ -57,35 +63,6 @@ function sleep(ms: number) {
   return new Promise<void>((resolve) => {
     setTimeout(resolve, ms);
   });
-}
-
-function getAutomationEnabled() {
-  return process.env.CLIMATE_NOTIFICATION_AUTOMATION_ENABLED === "true";
-}
-
-function getSchedulerIntervalMs() {
-  const rawValue = Number(
-    process.env.CLIMATE_NOTIFICATION_CHECK_INTERVAL_MINUTES ??
-      defaultIntervalMinutes,
-  );
-
-  if (!Number.isFinite(rawValue) || rawValue <= 0) {
-    return defaultIntervalMinutes * 60 * 1000;
-  }
-
-  return rawValue * 60 * 1000;
-}
-
-function getStartupDelayMs() {
-  const rawValue = Number(
-    process.env.CLIMATE_NOTIFICATION_STARTUP_DELAY_MS ?? defaultStartupDelayMs,
-  );
-
-  if (!Number.isFinite(rawValue) || rawValue < 0) {
-    return defaultStartupDelayMs;
-  }
-
-  return rawValue;
 }
 
 function buildInitialSummary(options: RunOptions): RunSummary {
@@ -106,17 +83,11 @@ function buildInitialSummary(options: RunOptions): RunSummary {
   };
 }
 
-function normalizeNeighborhood(value: string) {
-  return value.trim();
-}
-
-async function loadActiveUserPreferences() {
+async function loadActiveUserPreferences(): Promise<ActiveUserPreference[]> {
   const items = await prisma.userPreference.findMany({
     where: {
       notificationsEnabled: true,
-      neighborhood: {
-        not: "",
-      },
+      neighborhood: { not: "" },
     },
     select: {
       anonymousId: true,
@@ -128,21 +99,13 @@ async function loadActiveUserPreferences() {
   });
 
   return items
-    .filter(
-      (item) =>
-        typeof item.anonymousId === "string" &&
-        typeof item.neighborhood === "string" &&
-        item.neighborhood.trim().length > 0,
-    )
+    .filter((item) => item.neighborhood.trim().length > 0)
     .map((item) => ({
       anonymousId: item.anonymousId,
       neighborhood: item.neighborhood.trim(),
-      email:
-        typeof item.email === "string" && item.email.trim().length > 0
-          ? item.email.trim()
-          : null,
-      emailNotificationsEnabled: Boolean(item.emailNotificationsEnabled),
-      pushNotificationsEnabled: Boolean(item.pushNotificationsEnabled),
+      email: item.email?.trim() ? item.email.trim() : null,
+      emailNotificationsEnabled: item.emailNotificationsEnabled,
+      pushNotificationsEnabled: item.pushNotificationsEnabled,
     }));
 }
 
@@ -150,78 +113,63 @@ function groupPreferencesByNeighborhood(items: ActiveUserPreference[]) {
   const map = new Map<string, ActiveUserPreference[]>();
 
   for (const item of items) {
-    const key = item.neighborhood;
+    const bucket = map.get(item.neighborhood) ?? [];
 
-    if (!map.has(key)) {
-      map.set(key, []);
-    }
-
-    map.get(key)?.push(item);
+    bucket.push(item);
+    map.set(item.neighborhood, bucket);
   }
 
   return map;
 }
 
-async function handleChannelDelivery(input: {
-  channel: ClimateNotificationChannel;
+async function deliverEmailNotification(input: {
   preference: ActiveUserPreference;
   rule: ClimateNotificationRule;
   neighborhood: string;
   windowKey: string;
-  dryRun: boolean;
-  weather: {
-    probability: number | null;
-    recentRainMm: number;
-  };
+  weather: WeatherSummaryForRule;
   summary: RunSummary;
 }) {
-  const alreadySent = await hasSentClimateNotification({
-    anonymousId: input.preference.anonymousId,
-    channel: input.channel,
-    ruleKey: input.rule.ruleKey,
-    windowKey: input.windowKey,
+  input.summary.emailEligible += 1;
+
+  if (input.summary.dryRun) {
+    return;
+  }
+
+  const result = await sendAutomatedClimateEmail({
+    to: input.preference.email as string,
+    neighborhood: input.neighborhood,
+    rule: input.rule,
+    weather: input.weather,
   });
 
-  if (alreadySent) {
-    input.summary.duplicateSkips += 1;
+  await createClimateNotificationLog({
+    anonymousId: input.preference.anonymousId,
+    neighborhood: input.neighborhood,
+    channel: "EMAIL",
+    ruleKey: input.rule.ruleKey,
+    windowKey: input.windowKey,
+    status: result.delivered ? "SENT" : "FAILED",
+    message: input.rule.message,
+    metadata: result.metadata ?? { reason: result.reason },
+  });
+
+  if (result.delivered) {
+    input.summary.emailSent += 1;
+    await sleep(EMAIL_SEND_SPACING_MS);
     return;
   }
 
-  if (input.channel === "EMAIL") {
-    input.summary.emailEligible += 1;
+  input.summary.emailFailed += 1;
+}
 
-    if (input.dryRun) {
-      return;
-    }
-
-    const result = await sendAutomatedClimateEmail({
-      to: input.preference.email as string,
-      neighborhood: input.neighborhood,
-      rule: input.rule,
-      weather: input.weather,
-    });
-
-    await createClimateNotificationLog({
-      anonymousId: input.preference.anonymousId,
-      neighborhood: input.neighborhood,
-      channel: "EMAIL",
-      ruleKey: input.rule.ruleKey,
-      windowKey: input.windowKey,
-      status: result.delivered ? "SENT" : "FAILED",
-      message: input.rule.message,
-      metadata: result.metadata ?? { reason: result.reason },
-    });
-
-    if (result.delivered) {
-      input.summary.emailSent += 1;
-      await sleep(emailSendSpacingMs);
-      return;
-    }
-
-    input.summary.emailFailed += 1;
-    return;
-  }
-
+async function deliverPushNotification(input: {
+  preference: ActiveUserPreference;
+  rule: ClimateNotificationRule;
+  neighborhood: string;
+  windowKey: string;
+  summary: RunSummary;
+}) {
   const subscriptions = await listActivePushSubscriptions(
     input.preference.anonymousId,
   );
@@ -232,7 +180,7 @@ async function handleChannelDelivery(input: {
 
   input.summary.pushEligible += 1;
 
-  if (input.dryRun) {
+  if (input.summary.dryRun) {
     return;
   }
 
@@ -261,14 +209,97 @@ async function handleChannelDelivery(input: {
   input.summary.pushFailed += 1;
 }
 
+async function deliverChannelIfNeeded(input: {
+  channel: ClimateNotificationChannel;
+  preference: ActiveUserPreference;
+  rule: ClimateNotificationRule;
+  neighborhood: string;
+  windowKey: string;
+  weather: WeatherSummaryForRule;
+  summary: RunSummary;
+}) {
+  const alreadySent = await hasSentClimateNotification({
+    anonymousId: input.preference.anonymousId,
+    channel: input.channel,
+    ruleKey: input.rule.ruleKey,
+    windowKey: input.windowKey,
+  });
+
+  if (alreadySent) {
+    input.summary.duplicateSkips += 1;
+    return;
+  }
+
+  if (input.channel === "EMAIL") {
+    await deliverEmailNotification(input);
+    return;
+  }
+
+  await deliverPushNotification(input);
+}
+
+async function processNeighborhood(input: {
+  neighborhood: string;
+  preferences: ActiveUserPreference[];
+  windowKey: string;
+  summary: RunSummary;
+}) {
+  input.summary.neighborhoodsEvaluated += 1;
+
+  let weatherContext;
+
+  try {
+    weatherContext = await getWeatherPreventionContext(input.neighborhood);
+  } catch {
+    return;
+  }
+
+  const rule = evaluateClimateNotificationRule(weatherContext);
+
+  if (!rule) {
+    return;
+  }
+
+  input.summary.neighborhoodsTriggered += 1;
+  input.summary.triggeredNeighborhoods.push(input.neighborhood);
+
+  const weather: WeatherSummaryForRule = {
+    probability: weatherContext.today.precipitationProbabilityMax,
+    recentRainMm: weatherContext.recent.pastThreeDaysPrecipitationSumMm,
+  };
+
+  for (const preference of input.preferences) {
+    if (preference.emailNotificationsEnabled && preference.email) {
+      await deliverChannelIfNeeded({
+        channel: "EMAIL",
+        preference,
+        rule,
+        neighborhood: input.neighborhood,
+        windowKey: input.windowKey,
+        weather,
+        summary: input.summary,
+      });
+    }
+
+    if (preference.pushNotificationsEnabled) {
+      await deliverChannelIfNeeded({
+        channel: "PUSH",
+        preference,
+        rule,
+        neighborhood: input.neighborhood,
+        windowKey: input.windowKey,
+        weather,
+        summary: input.summary,
+      });
+    }
+  }
+}
+
 export async function runAutomatedClimateNotificationCycle(
   options: RunOptions = {},
-) {
+): Promise<RunSummary> {
   if (isRunning) {
-    return {
-      ...buildInitialSummary(options),
-      triggeredNeighborhoods: [],
-    };
+    return buildInitialSummary(options);
   }
 
   isRunning = true;
@@ -278,67 +309,19 @@ export async function runAutomatedClimateNotificationCycle(
 
     const summary = buildInitialSummary(options);
     const windowKey = getClimateNotificationWindowKey();
-
     const preferences = await loadActiveUserPreferences();
+
     summary.usersEvaluated = preferences.length;
 
     const groupedPreferences = groupPreferencesByNeighborhood(preferences);
 
     for (const [neighborhood, neighborhoodPreferences] of groupedPreferences) {
-      summary.neighborhoodsEvaluated += 1;
-
-      let weatherContext;
-
-      try {
-        weatherContext = await getWeatherPreventionContext(neighborhood);
-      } catch {
-        continue;
-      }
-
-      const rule = evaluateClimateNotificationRule(weatherContext);
-
-      if (!rule) {
-        continue;
-      }
-
-      summary.neighborhoodsTriggered += 1;
-      summary.triggeredNeighborhoods.push(neighborhood);
-
-      for (const preference of neighborhoodPreferences) {
-        if (preference.emailNotificationsEnabled && preference.email) {
-          await handleChannelDelivery({
-            channel: "EMAIL",
-            preference,
-            rule,
-            neighborhood,
-            windowKey,
-            dryRun: summary.dryRun,
-            weather: {
-              probability: weatherContext.today.precipitationProbabilityMax,
-              recentRainMm:
-                weatherContext.recent.pastThreeDaysPrecipitationSumMm,
-            },
-            summary,
-          });
-        }
-
-        if (preference.pushNotificationsEnabled) {
-          await handleChannelDelivery({
-            channel: "PUSH",
-            preference,
-            rule,
-            neighborhood,
-            windowKey,
-            dryRun: summary.dryRun,
-            weather: {
-              probability: weatherContext.today.precipitationProbabilityMax,
-              recentRainMm:
-                weatherContext.recent.pastThreeDaysPrecipitationSumMm,
-            },
-            summary,
-          });
-        }
-      }
+      await processNeighborhood({
+        neighborhood,
+        preferences: neighborhoodPreferences,
+        windowKey,
+        summary,
+      });
     }
 
     return summary;
@@ -348,9 +331,11 @@ export async function runAutomatedClimateNotificationCycle(
 }
 
 export function startClimateNotificationScheduler() {
-  if (!getAutomationEnabled() || schedulerTimer) {
+  if (!env.climateNotifications.automationEnabled || schedulerTimer) {
     return;
   }
+
+  const intervalMs = env.climateNotifications.intervalMinutes * 60 * 1000;
 
   const runScheduledCycle = async () => {
     try {
@@ -365,11 +350,11 @@ export function startClimateNotificationScheduler() {
 
   setTimeout(() => {
     void runScheduledCycle();
-  }, getStartupDelayMs()).unref();
+  }, env.climateNotifications.startupDelayMs).unref();
 
   schedulerTimer = setInterval(() => {
     void runScheduledCycle();
-  }, getSchedulerIntervalMs());
+  }, intervalMs);
 
   schedulerTimer.unref();
 }

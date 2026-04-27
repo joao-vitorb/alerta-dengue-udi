@@ -1,5 +1,5 @@
-import { AppError } from "../errors/AppError";
 import { env } from "../config/env";
+import { AppError } from "../errors/AppError";
 
 type OpenMeteoForecastResponse = {
   latitude: number;
@@ -22,6 +22,9 @@ type OpenMeteoForecastResponse = {
   };
 };
 
+const FORECAST_DAYS = 3;
+const PAST_DAYS = 3;
+
 export async function fetchOpenMeteoForecast(
   latitude: number,
   longitude: number,
@@ -33,13 +36,13 @@ export async function fetchOpenMeteoForecast(
       "temperature_2m,rain,relative_humidity_2m,weather_code,wind_speed_10m",
     daily:
       "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max",
-    timezone: env.weatherTimezone,
-    forecast_days: "3",
-    past_days: "3",
+    timezone: env.weather.timezone,
+    forecast_days: String(FORECAST_DAYS),
+    past_days: String(PAST_DAYS),
   });
 
   const response = await fetch(
-    `${env.weatherApiBaseUrl}/forecast?${params.toString()}`,
+    `${env.weather.apiBaseUrl}/forecast?${params.toString()}`,
   );
 
   if (!response.ok) {

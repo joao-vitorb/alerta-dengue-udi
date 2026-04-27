@@ -1,5 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
+import { ZodError } from "zod";
 import { AppError } from "../errors/AppError";
+import { formatZodErrors } from "../utils/formatZodErrors";
 
 export function errorHandler(
   error: unknown,
@@ -11,6 +13,13 @@ export function errorHandler(
     return response.status(error.statusCode).json({
       message: error.message,
       details: error.details ?? null,
+    });
+  }
+
+  if (error instanceof ZodError) {
+    return response.status(400).json({
+      message: "Validation failed",
+      details: formatZodErrors(error),
     });
   }
 

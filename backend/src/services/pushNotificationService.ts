@@ -1,5 +1,4 @@
-import webpush from "web-push";
-import { env } from "../config/env";
+import { sendWebPushMessage } from "../infra/webPushClient";
 
 type StoredPushSubscription = {
   endpoint: string;
@@ -20,15 +19,22 @@ type NotificationDeliveryResult = {
   reason: string | null;
 };
 
-function isPushConfigured() {
-  return Boolean(env.vapidPublicKey && env.vapidPrivateKey && env.vapidSubject);
-}
-
 export async function sendPushNotification(
   subscription: StoredPushSubscription,
   payload: PushPayload,
 ): Promise<NotificationDeliveryResult> {
-  if (!isPushConfigured()) {
+  const result = await sendWebPushMessage(
+    {
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: subscription.p256dh,
+        auth: subscription.auth,
+      },
+    },
+    payload,
+  );
+
+  if (result.reason === "WEB_PUSH_NOT_CONFIGURED") {
     return {
       attempted: true,
       delivered: false,
@@ -37,39 +43,10 @@ export async function sendPushNotification(
     };
   }
 
-  webpush.setVapidDetails(
-    env.vapidSubject,
-    env.vapidPublicKey,
-    env.vapidPrivateKey,
-  );
-
-  try {
-    await webpush.sendNotification(
-      {
-        endpoint: subscription.endpoint,
-        keys: {
-          p256dh: subscription.p256dh,
-          auth: subscription.auth,
-        },
-      },
-      JSON.stringify(payload),
-    );
-
-    return {
-      attempted: true,
-      delivered: true,
-      simulated: false,
-      reason: null,
-    };
-  } catch (error) {
-    return {
-      attempted: true,
-      delivered: false,
-      simulated: false,
-      reason:
-        error instanceof Error
-          ? error.message
-          : "Failed to send push notification",
-    };
-  }
+  return {
+    attempted: true,
+    delivered: result.delivered,
+    simulated: false,
+    reason: result.delivered ? null : result.reason,
+  };
 }
