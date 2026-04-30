@@ -5,6 +5,25 @@ import type {
 
 type LeafletPosition = [number, number];
 
+const NAME_PROPERTY_KEYS = [
+  "name",
+  "Name",
+  "nome",
+  "NOME",
+  "bairro",
+  "BAIRRO",
+  "NOME_BAIRRO",
+  "NM_BAIRRO",
+  "bairro_nome",
+  "layer",
+  "Layer",
+  "text",
+] as const;
+
+const NEIGHBORHOOD_NAME_ALIASES: Record<string, string[]> = {
+  roosevelt: ["roosevelt", "presidente roosevelt"],
+};
+
 function normalizeNeighborhoodName(value: string) {
   return value
     .trim()
@@ -13,27 +32,17 @@ function normalizeNeighborhoodName(value: string) {
     .replace(/\p{Diacritic}/gu, "");
 }
 
-export function getNeighborhoodFeatureName(
-  feature: NeighborhoodGeoJsonFeature,
-) {
+function getNeighborhoodFeatureName(feature: NeighborhoodGeoJsonFeature) {
   const properties = feature.properties as Record<string, unknown>;
 
-  const possibleName =
-    (properties.name as string | undefined) ??
-    (properties.Name as string | undefined) ??
-    (properties.nome as string | undefined) ??
-    (properties.NOME as string | undefined) ??
-    (properties.bairro as string | undefined) ??
-    (properties.BAIRRO as string | undefined) ??
-    (properties.NOME_BAIRRO as string | undefined) ??
-    (properties.NM_BAIRRO as string | undefined) ??
-    (properties.bairro_nome as string | undefined) ??
-    (properties.layer as string | undefined) ??
-    (properties.Layer as string | undefined) ??
-    (properties.text as string | undefined) ??
-    "";
+  for (const key of NAME_PROPERTY_KEYS) {
+    const value = properties[key];
+    if (typeof value === "string" && value.length > 0) {
+      return value;
+    }
+  }
 
-  return typeof possibleName === "string" ? possibleName : "";
+  return "";
 }
 
 export function findNeighborhoodFeature(
@@ -44,25 +53,19 @@ export function findNeighborhoodFeature(
     return null;
   }
 
-  const aliases: Record<string, string[]> = {
-    roosevelt: ["roosevelt", "presidente roosevelt"],
-  };
-
   const normalizedSelectedName = normalizeNeighborhoodName(neighborhoodName);
 
   const acceptedNames = new Set([
     normalizedSelectedName,
-    ...(aliases[normalizedSelectedName] ?? []),
+    ...(NEIGHBORHOOD_NAME_ALIASES[normalizedSelectedName] ?? []),
   ]);
 
   return (
-    collection.features.find((feature) => {
-      const featureName = normalizeNeighborhoodName(
-        getNeighborhoodFeatureName(feature),
-      );
-
-      return acceptedNames.has(featureName);
-    }) ?? null
+    collection.features.find((feature) =>
+      acceptedNames.has(
+        normalizeNeighborhoodName(getNeighborhoodFeatureName(feature)),
+      ),
+    ) ?? null
   );
 }
 

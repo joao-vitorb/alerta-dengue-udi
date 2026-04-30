@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
-import { DashboardHeader } from "../components/dashboard/DashboardHeader";
-import { DashboardAlertBanner } from "../components/dashboard/DashboardAlertBanner";
-import { DashboardToolsPanel } from "../components/dashboard/DashboardToolsPanel";
-import { PreventionTipsCard } from "../components/dashboard/PreventionTipsCard";
 import { ClimateModal } from "../components/dashboard/ClimateModal";
+import { DashboardAlertBanner } from "../components/dashboard/DashboardAlertBanner";
+import { DashboardHeader } from "../components/dashboard/DashboardHeader";
+import { DashboardToolsPanel } from "../components/dashboard/DashboardToolsPanel";
 import { NearbyHealthUnitsModal } from "../components/dashboard/NearbyHealthUnitsModal";
-import { VirtualDiagnosisModal } from "../components/dashboard/VirtualDiagnosisModal";
 import { PreferencesModal } from "../components/dashboard/PreferencesModal";
+import { PreventionTipsCard } from "../components/dashboard/PreventionTipsCard";
+import { VirtualDiagnosisModal } from "../components/dashboard/VirtualDiagnosisModal";
 import { MapCanvas } from "../components/map/MapCanvas";
 import { OnboardingModal } from "../components/onboarding/OnboardingModal";
 import { neighborhoodOptions } from "../data/neighborhoodOptions";
@@ -15,58 +15,60 @@ import { useMapHealthUnits } from "../hooks/useMapHealthUnits";
 import { usePreventiveAlerts } from "../hooks/usePreventiveAlerts";
 import { useUserPreference } from "../hooks/useUserPreference";
 import { useWeatherContext } from "../hooks/useWeatherContext";
-import type { PreferenceFormValues } from "../types/userPreference";
+import type {
+  LocalExperience,
+  PreferenceFormValues,
+} from "../types/userPreference";
 
-function getInitialFormValues(
-  neighborhood: string,
-  email: string,
-  notificationsEnabled: boolean,
-  emailNotificationsEnabled: boolean,
-  pushNotificationsEnabled: boolean,
+type DynamicAlertContent = {
+  title: string;
+  description: string;
+};
+
+const DEFAULT_ALERT: DynamicAlertContent = {
+  title: "Monitoramento preventivo ativo",
+  description:
+    "Mantenha a vistoria da sua residência e acompanhe o mapa, o clima e as unidades mais próximas.",
+};
+
+const LOADING_ALERT: DynamicAlertContent = {
+  title: "Analisando condições atuais",
+  description:
+    "Estamos atualizando o contexto climático da sua região para montar o alerta preventivo.",
+};
+
+const ERROR_ALERT: DynamicAlertContent = {
+  title: "Monitoramento temporariamente indisponível",
+  description:
+    "Não foi possível atualizar o clima agora, mas o restante do sistema continua funcionando normalmente.",
+};
+
+function buildFormValuesFromExperience(
+  experience: LocalExperience | null,
 ): PreferenceFormValues {
   return {
-    neighborhood: neighborhood || neighborhoodOptions[0],
-    email,
-    notificationsEnabled,
-    emailNotificationsEnabled,
-    pushNotificationsEnabled,
+    neighborhood: experience?.neighborhood || neighborhoodOptions[0],
+    email: experience?.email ?? "",
+    notificationsEnabled: experience?.notificationsEnabled ?? false,
+    emailNotificationsEnabled: experience?.emailNotificationsEnabled ?? false,
+    pushNotificationsEnabled: experience?.pushNotificationsEnabled ?? false,
   };
 }
 
-function getDynamicAlertContent(input: {
-  title?: string;
-  description?: string;
+function resolveDynamicAlert(input: {
+  alertTitle?: string;
+  alertDescription?: string;
   weatherLoading: boolean;
   weatherError: boolean;
-}) {
-  if (input.weatherLoading) {
-    return {
-      title: "Analisando condições atuais",
-      description:
-        "Estamos atualizando o contexto climático da sua região para montar o alerta preventivo.",
-    };
+}): DynamicAlertContent {
+  if (input.weatherLoading) return LOADING_ALERT;
+  if (input.weatherError) return ERROR_ALERT;
+
+  if (input.alertTitle && input.alertDescription) {
+    return { title: input.alertTitle, description: input.alertDescription };
   }
 
-  if (input.weatherError) {
-    return {
-      title: "Monitoramento temporariamente indisponível",
-      description:
-        "Não foi possível atualizar o clima agora, mas o restante do sistema continua funcionando normalmente.",
-    };
-  }
-
-  if (input.title && input.description) {
-    return {
-      title: input.title,
-      description: input.description,
-    };
-  }
-
-  return {
-    title: "Monitoramento preventivo ativo",
-    description:
-      "Mantenha a vistoria da sua residência e acompanhe o mapa, o clima e as unidades mais próximas.",
-  };
+  return DEFAULT_ALERT;
 }
 
 export function MapPage() {
@@ -89,7 +91,6 @@ export function MapPage() {
   } = useWeatherContext(experience?.neighborhood);
 
   const { data: alertsData } = usePreventiveAlerts(experience?.neighborhood);
-
   const { items: mapHealthUnits } = useMapHealthUnits();
 
   const [isClimateOpen, setIsClimateOpen] = useState(false);
@@ -97,39 +98,31 @@ export function MapPage() {
   const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
 
-  const onboardingInitialValues = useMemo(() => {
-    if (!experience) {
-      return getInitialFormValues(
-        neighborhoodOptions[0],
-        "",
-        false,
-        false,
-        false,
-      );
-    }
-
-    return getInitialFormValues(
-      experience.neighborhood,
-      experience.email,
-      experience.notificationsEnabled,
-      experience.emailNotificationsEnabled,
-      experience.pushNotificationsEnabled,
-    );
-  }, [experience]);
+  const onboardingInitialValues = useMemo(
+    () => buildFormValuesFromExperience(experience),
+    [experience],
+  );
 
   const dynamicAlert = useMemo(() => {
     const firstAlert = alertsData?.alerts?.[0];
 
-    return getDynamicAlertContent({
-      title: firstAlert?.title,
-      description: firstAlert?.description,
+    return resolveDynamicAlert({
+      alertTitle: firstAlert?.title,
+      alertDescription: firstAlert?.description,
       weatherLoading: isLoadingWeather,
       weatherError: Boolean(weatherErrorMessage),
     });
   }, [alertsData, isLoadingWeather, weatherErrorMessage]);
 
+  function handleOpenNearbyUnits() {
+    if (!location && !isLoadingLocation) {
+      requestLocation();
+    }
+    setIsNearbyUnitsOpen(true);
+  }
+
   return (
-    <main className="min-h-screen bg-[#eaf6f2] px-3 py-3 sm:px-5 sm:py-4 lg:px-8 lg:py-5">
+    <main className="min-h-screen bg-page-bg px-3 py-3 sm:px-5 sm:py-4 lg:px-8 lg:py-5">
       <div className="mx-auto w-full max-w-257.5">
         <OnboardingModal
           isOpen={isOnboardingOpen}
@@ -195,13 +188,7 @@ export function MapPage() {
           <div className="space-y-3 sm:space-y-4">
             <DashboardToolsPanel
               onOpenClimate={() => setIsClimateOpen(true)}
-              onOpenNearbyUnits={() => {
-                if (!location && !isLoadingLocation) {
-                  requestLocation();
-                }
-
-                setIsNearbyUnitsOpen(true);
-              }}
+              onOpenNearbyUnits={handleOpenNearbyUnits}
               onOpenDiagnosis={() => setIsDiagnosisOpen(true)}
             />
 

@@ -18,7 +18,7 @@ export function PreventionTipsCard() {
             key={tip}
             className="flex items-start gap-2 text-[13px] leading-5 text-[#317666] sm:text-[14px] sm:leading-6"
           >
-            <span className="mt-1.75 h-1.5 w-1.5 rounded-full bg-[#13a36d] sm:mt-2.25" />
+            <span className="mt-1.75 h-1.5 w-1.5 rounded-full bg-brand-green sm:mt-2.25" />
             <span>{tip}</span>
           </li>
         ))}

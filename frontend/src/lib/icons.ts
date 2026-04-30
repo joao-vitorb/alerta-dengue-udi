@@ -1,27 +1,5 @@
-import {
-  faBell,
-  faBug,
-  faCheck,
-  faCloud,
-  faCloudRain,
-  faDroplet,
-  faFileLines,
-  faHospital,
-  faLocationDot,
-  faMapLocationDot,
-  faPhone,
-  faRoute,
-  faSliders,
-  faTemperatureThreeQuarters,
-  faTriangleExclamation,
-  faWind,
-  faXmark,
-  faCircleInfo,
-} from "@fortawesome/free-solid-svg-icons";
-
 export {
   faBell,
-  faBug,
   faCheck,
   faCircleInfo,
   faCloud,
@@ -38,4 +16,4 @@ export {
   faTriangleExclamation,
   faWind,
   faXmark,
-};
+} from "@fortawesome/free-solid-svg-icons";

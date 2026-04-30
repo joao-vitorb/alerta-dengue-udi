@@ -5,23 +5,20 @@ type BrowserLocation = {
   longitude: number;
 };
 
+const GEOLOCATION_OPTIONS: PositionOptions = {
+  enableHighAccuracy: true,
+  timeout: 10000,
+  maximumAge: 300000,
+};
+
 export function useBrowserLocation() {
   const [location, setLocation] = useState<BrowserLocation | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  const [locationErrorMessage, setLocationErrorMessage] = useState<
-    string | null
-  >(null);
 
   function requestLocation() {
-    if (!("geolocation" in navigator)) {
-      setLocationErrorMessage(
-        "Geolocalização não está disponível neste navegador.",
-      );
-      return;
-    }
+    if (!("geolocation" in navigator)) return;
 
     setIsLoadingLocation(true);
-    setLocationErrorMessage(null);
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -32,23 +29,11 @@ export function useBrowserLocation() {
         setIsLoadingLocation(false);
       },
       () => {
-        setLocationErrorMessage(
-          "Não foi possível acessar sua localização. Você pode continuar usando o bairro selecionado.",
-        );
         setIsLoadingLocation(false);
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000,
-      },
+      GEOLOCATION_OPTIONS,
     );
   }
 
-  return {
-    location,
-    isLoadingLocation,
-    locationErrorMessage,
-    requestLocation,
-  };
+  return { location, isLoadingLocation, requestLocation };
 }

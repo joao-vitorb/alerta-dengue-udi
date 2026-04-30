@@ -1,7 +1,9 @@
 import type { NeighborhoodGeoJsonFeatureCollection } from "../types/neighborhoodGeoJson";
 
+const GEOJSON_PATH = "/data/uberlandia-neighborhoods.geojson";
+
 export async function loadNeighborhoodGeoJson() {
-  const response = await fetch("/data/uberlandia-neighborhoods.geojson");
+  const response = await fetch(GEOJSON_PATH);
 
   if (!response.ok) {
     throw new Error("Não foi possível carregar o GeoJSON dos bairros.");

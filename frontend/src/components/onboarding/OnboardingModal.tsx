@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { neighborhoodOptions } from "../../data/neighborhoodOptions";
 import type {
   DeviceType,
@@ -21,15 +21,51 @@ type OnboardingModalProps = {
 
 type OnboardingStep = 0 | 1 | 2 | 3;
 
+type StepContent = {
+  variant: "welcome" | "location" | "notifications" | "success";
+  title: string;
+  description: string;
+};
+
+const STEP_CONTENT: Record<OnboardingStep, StepContent> = {
+  0: {
+    variant: "welcome",
+    title: "Bem-vindo ao Alerta Dengue UDI",
+    description:
+      "Juntos, vamos combater a dengue em Uberlândia! Configure suas preferências para receber alertas personalizados.",
+  },
+  1: {
+    variant: "location",
+    title: "Localização",
+    description:
+      "Selecione seu bairro para receber informações relevantes da sua região.",
+  },
+  2: {
+    variant: "notifications",
+    title: "Notificações",
+    description:
+      "Escolha como deseja receber alertas sobre a dengue na sua região.",
+  },
+  3: {
+    variant: "success",
+    title: "Tudo pronto!",
+    description:
+      "Suas preferências foram configuradas. Você pode alterá-las a qualquer momento nas configurações.",
+  },
+};
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  return EMAIL_PATTERN.test(value.trim());
 }
 
-function getInitialNeighborhood(
-  canClose: boolean,
-  initialValues: PreferenceFormValues,
-) {
-  return canClose ? initialValues.neighborhood : "";
+function requestSilentGeolocation() {
+  if (!("geolocation" in navigator)) return;
+  navigator.geolocation.getCurrentPosition(
+    () => {},
+    () => {},
+  );
 }
 
 export function OnboardingModal({
@@ -59,12 +95,10 @@ export function OnboardingModal({
   const isSuccessStep = currentStep === 3;
 
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
+    if (!isOpen) return;
 
     setCurrentStep(0);
-    setNeighborhood(getInitialNeighborhood(canClose, initialValues));
+    setNeighborhood(canClose ? initialValues.neighborhood : "");
     setAllowGeolocation(false);
     setNotificationsEnabled(initialValues.notificationsEnabled);
     setPushNotificationsEnabled(
@@ -73,57 +107,38 @@ export function OnboardingModal({
     setEmailNotificationsEnabled(initialValues.emailNotificationsEnabled);
     setEmail(initialValues.email);
     setLocalErrorMessage(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  if (!isOpen) return null;
+
+  const { variant, title, description } = STEP_CONTENT[currentStep];
   const displayedErrorMessage = localErrorMessage ?? errorMessage;
-
-  const title = useMemo(() => {
-    if (currentStep === 0) {
-      return "Bem-vindo ao Alerta Dengue UDI";
-    }
-
-    if (currentStep === 1) {
-      return "Localização";
-    }
-
-    if (currentStep === 2) {
-      return "Notificações";
-    }
-
-    return "Tudo pronto!";
-  }, [currentStep]);
-
-  const description = useMemo(() => {
-    if (currentStep === 0) {
-      return "Juntos, vamos combater a dengue em Uberlândia! Configure suas preferências para receber alertas personalizados.";
-    }
-
-    if (currentStep === 1) {
-      return "Selecione seu bairro para receber informações relevantes da sua região.";
-    }
-
-    if (currentStep === 2) {
-      return "Escolha como deseja receber alertas sobre a dengue na sua região.";
-    }
-
-    return "Suas preferências foram configuradas. Você pode alterá-las a qualquer momento nas configurações.";
-  }, [currentStep]);
-
-  if (!isOpen) {
-    return null;
-  }
+  const isEmailRequired = notificationsEnabled && emailNotificationsEnabled;
 
   function goToPreviousStep() {
     setLocalErrorMessage(null);
 
-    if (currentStep === 3) {
-      setCurrentStep(2);
-      return;
-    }
+    if (currentStep === 0) return;
+    setCurrentStep((currentStep - 1) as OnboardingStep);
+  }
 
-    if (currentStep > 0) {
-      setCurrentStep((currentStep - 1) as OnboardingStep);
-    }
+  function validateNotificationsStep(): string | null {
+    if (!isEmailRequired) return null;
+    if (!email.trim()) return "Informe um email para receber notificações por email.";
+    if (!isValidEmail(email)) return "Informe um email válido para continuar.";
+    return null;
+  }
+
+  function buildFinalValues(): PreferenceFormValues {
+    return {
+      neighborhood,
+      email: isEmailRequired ? email.trim() : "",
+      notificationsEnabled,
+      emailNotificationsEnabled: isEmailRequired,
+      pushNotificationsEnabled:
+        !isDesktop && notificationsEnabled && pushNotificationsEnabled,
+    };
   }
 
   async function goToNextStep() {
@@ -139,46 +154,21 @@ export function OnboardingModal({
         setLocalErrorMessage("Selecione um bairro para continuar.");
         return;
       }
-
       setCurrentStep(2);
       return;
     }
 
     if (currentStep === 2) {
-      if (notificationsEnabled && emailNotificationsEnabled && !email.trim()) {
-        setLocalErrorMessage(
-          "Informe um email para receber notificações por email.",
-        );
+      const validationError = validateNotificationsStep();
+      if (validationError) {
+        setLocalErrorMessage(validationError);
         return;
       }
 
-      if (
-        notificationsEnabled &&
-        emailNotificationsEnabled &&
-        !isValidEmail(email)
-      ) {
-        setLocalErrorMessage("Informe um email válido para continuar.");
-        return;
-      }
+      await onSubmit(buildFinalValues());
 
-      const finalValues: PreferenceFormValues = {
-        neighborhood,
-        email:
-          notificationsEnabled && emailNotificationsEnabled ? email.trim() : "",
-        notificationsEnabled,
-        emailNotificationsEnabled:
-          notificationsEnabled && emailNotificationsEnabled,
-        pushNotificationsEnabled:
-          !isDesktop && notificationsEnabled && pushNotificationsEnabled,
-      };
-
-      await onSubmit(finalValues);
-
-      if (allowGeolocation && "geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          () => {},
-          () => {},
-        );
+      if (allowGeolocation) {
+        requestSilentGeolocation();
       }
 
       setCurrentStep(3);
@@ -198,38 +188,22 @@ export function OnboardingModal({
   }
 
   function handlePushNotificationsEnabledChange(value: boolean) {
-    if (isDesktop || !notificationsEnabled) {
-      return;
-    }
-
+    if (isDesktop || !notificationsEnabled) return;
     setPushNotificationsEnabled(value);
   }
 
   function handleEmailNotificationsEnabledChange(value: boolean) {
-    if (!notificationsEnabled) {
-      return;
-    }
-
+    if (!notificationsEnabled) return;
     setEmailNotificationsEnabled(value);
   }
 
   return (
     <div className="fixed inset-0 z-3000 flex items-center justify-center overflow-y-auto bg-[#edf7f4] px-3 py-6 sm:px-6 sm:py-10">
       <div className="w-full max-w-157 rounded-[18px] border border-[#d6ddd9] bg-white px-5 py-6 shadow-[0_10px_32px_rgba(15,23,42,0.06)] sm:rounded-[22px] sm:px-8 sm:py-9">
-        <OnboardingStepIcon
-          variant={
-            currentStep === 0
-              ? "welcome"
-              : currentStep === 1
-                ? "location"
-                : currentStep === 2
-                  ? "notifications"
-                  : "success"
-          }
-        />
+        <OnboardingStepIcon variant={variant} />
 
         <div className="mt-5 text-center sm:mt-6">
-          <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-[#02051f] sm:text-[26px] lg:text-[28px]">
+          <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-brand-dark sm:text-[26px] lg:text-[28px]">
             {title}
           </h2>
           <p className="mx-auto mt-2 max-w-125 text-[14px] leading-6 text-[#6d7390] sm:mt-3 sm:text-[15px] sm:leading-7">
@@ -242,7 +216,7 @@ export function OnboardingModal({
             <div>
               <label
                 htmlFor="onboarding-neighborhood"
-                className="mb-2 block text-[14px] font-semibold text-[#02051f] sm:mb-3 sm:text-[15px]"
+                className="mb-2 block text-[14px] font-semibold text-brand-dark sm:mb-3 sm:text-[15px]"
               >
                 Seu bairro
               </label>
@@ -252,7 +226,7 @@ export function OnboardingModal({
                   id="onboarding-neighborhood"
                   value={neighborhood}
                   onChange={(event) => setNeighborhood(event.target.value)}
-                  className="h-11 w-full appearance-none rounded-lg border border-[#edf0f4] bg-[#f3f5f8] px-3 text-[14px] text-[#6d7390] outline-none transition cursor-pointer focus:border-[#02051f] sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
+                  className="h-11 w-full appearance-none rounded-lg border border-[#edf0f4] bg-[#f3f5f8] px-3 text-[14px] text-[#6d7390] outline-none transition cursor-pointer focus:border-brand-dark sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
                 >
                   <option value="">Selecione seu bairro</option>
                   {neighborhoodOptions.map((option) => (
@@ -262,7 +236,7 @@ export function OnboardingModal({
                   ))}
                 </select>
 
-                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#9aa1b5]">
+                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-text-muted">
                   <svg
                     width="18"
                     height="18"
@@ -284,7 +258,7 @@ export function OnboardingModal({
 
             <div className="mt-5 flex items-center justify-between gap-3 sm:mt-6 sm:gap-4">
               <div>
-                <p className="text-[14px] font-semibold text-[#02051f] sm:text-[15px]">
+                <p className="text-[14px] font-semibold text-brand-dark sm:text-[15px]">
                   Permitir geolocalização
                 </p>
               </div>
@@ -301,7 +275,7 @@ export function OnboardingModal({
           <div className="mx-auto mt-6 max-w-117 sm:mt-8">
             <div className="space-y-3 sm:space-y-4">
               <div className="flex items-center justify-between gap-3 sm:gap-4">
-                <p className="text-[14px] font-semibold text-[#02051f] sm:text-[15px]">
+                <p className="text-[14px] font-semibold text-brand-dark sm:text-[15px]">
                   Ativar notificações
                 </p>
 
@@ -315,8 +289,8 @@ export function OnboardingModal({
                 <p
                   className={`text-[14px] font-semibold sm:text-[15px] ${
                     notificationsEnabled && !isDesktop
-                      ? "text-[#02051f]"
-                      : "text-[#9aa1b5]"
+                      ? "text-brand-dark"
+                      : "text-text-muted"
                   }`}
                 >
                   Notificações push (somente celular)
@@ -332,7 +306,7 @@ export function OnboardingModal({
               <div className="flex items-center justify-between gap-3 sm:gap-4">
                 <p
                   className={`text-[14px] font-semibold sm:text-[15px] ${
-                    notificationsEnabled ? "text-[#02051f]" : "text-[#9aa1b5]"
+                    notificationsEnabled ? "text-brand-dark" : "text-text-muted"
                   }`}
                 >
                   Notificações por email
@@ -346,11 +320,11 @@ export function OnboardingModal({
               </div>
             </div>
 
-            {notificationsEnabled && emailNotificationsEnabled ? (
+            {isEmailRequired ? (
               <div className="mt-5 sm:mt-6">
                 <label
                   htmlFor="onboarding-email"
-                  className="mb-2 block text-[14px] font-semibold text-[#02051f] sm:mb-3 sm:text-[15px]"
+                  className="mb-2 block text-[14px] font-semibold text-brand-dark sm:mb-3 sm:text-[15px]"
                 >
                   Email para receber alertas
                 </label>
@@ -361,7 +335,7 @@ export function OnboardingModal({
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="Digite seu email"
-                  className="h-11 w-full rounded-lg border border-[#edf0f4] bg-[#f3f5f8] px-3 text-[14px] text-[#02051f] outline-none transition placeholder:text-[#9aa1b5] focus:border-[#02051f] sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
+                  className="h-11 w-full rounded-lg border border-[#edf0f4] bg-[#f3f5f8] px-3 text-[14px] text-brand-dark outline-none transition placeholder:text-text-muted focus:border-brand-dark sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
                 />
               </div>
             ) : null}
@@ -386,7 +360,7 @@ export function OnboardingModal({
               type="button"
               onClick={goToPreviousStep}
               disabled={isSubmitting}
-              className="inline-flex h-11 min-w-18.5 items-center justify-center rounded-lg border border-[#d6ddd9] bg-white px-4 text-[14px] font-semibold text-[#02051f] transition hover:bg-[#f8fafb] cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 sm:rounded-xl sm:px-5 sm:text-[15px]"
+              className="inline-flex h-11 min-w-18.5 items-center justify-center rounded-lg border border-[#d6ddd9] bg-white px-4 text-[14px] font-semibold text-brand-dark transition hover:bg-[#f8fafb] cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 sm:rounded-xl sm:px-5 sm:text-[15px]"
             >
               Voltar
             </button>
@@ -398,8 +372,8 @@ export function OnboardingModal({
             disabled={isSubmitting}
             className={`inline-flex h-11 min-w-22.5 items-center justify-center rounded-lg px-5 text-[14px] font-semibold text-white transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 sm:rounded-xl sm:px-6 sm:text-[15px] ${
               isSuccessStep
-                ? "bg-[#13a36d] hover:bg-[#109561]"
-                : "bg-[#02051f] hover:bg-[#0a1030]"
+                ? "bg-brand-green hover:bg-brand-green-hover"
+                : "bg-brand-dark hover:bg-brand-dark-hover"
             }`}
           >
             {isSubmitting

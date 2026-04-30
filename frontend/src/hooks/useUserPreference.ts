@@ -12,6 +12,7 @@ import type {
   UpdateUserPreferencePayload,
   UserPreference,
 } from "../types/userPreference";
+import { getErrorMessage } from "../utils/errorMessage";
 import {
   createInitialLocalExperience,
   getLocalExperience,
@@ -19,13 +20,7 @@ import {
   saveLocalExperience,
 } from "../utils/localStorage";
 
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Não foi possível concluir a operação.";
-}
+const FALLBACK_ERROR_MESSAGE = "Não foi possível concluir a operação.";
 
 function buildCreatePayload(
   experience: LocalExperience,
@@ -54,12 +49,42 @@ function buildUpdatePayload(
   };
 }
 
+function experienceToCreatePayload(
+  experience: LocalExperience,
+): CreateUserPreferencePayload {
+  return {
+    anonymousId: experience.anonymousId,
+    neighborhood: experience.neighborhood,
+    email: experience.email.trim() || undefined,
+    notificationsEnabled: experience.notificationsEnabled,
+    emailNotificationsEnabled: experience.emailNotificationsEnabled,
+    pushNotificationsEnabled: experience.pushNotificationsEnabled,
+    deviceType: experience.deviceType,
+  };
+}
+
+function loadOrCreateExperience(): LocalExperience {
+  const stored = getLocalExperience();
+  if (stored) return stored;
+
+  const created = createInitialLocalExperience();
+  saveLocalExperience(created);
+  return created;
+}
+
+async function fetchOrRecreatePreference(experience: LocalExperience) {
+  try {
+    return await getUserPreferenceByAnonymousId(experience.anonymousId);
+  } catch (error) {
+    if (error instanceof ApiError && error.statusCode === 404) {
+      return upsertUserPreference(experienceToCreatePayload(experience));
+    }
+    throw error;
+  }
+}
+
 export function useUserPreference() {
   const [experience, setExperience] = useState<LocalExperience | null>(null);
-  const [userPreference, setUserPreference] = useState<UserPreference | null>(
-    null,
-  );
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -68,82 +93,25 @@ export function useUserPreference() {
     let isMounted = true;
 
     async function initialize() {
-      const storedExperience = getLocalExperience();
-      const currentExperience =
-        storedExperience ?? createInitialLocalExperience();
+      const currentExperience = loadOrCreateExperience();
 
-      if (!storedExperience) {
-        saveLocalExperience(currentExperience);
-      }
-
-      if (!isMounted) {
-        return;
-      }
+      if (!isMounted) return;
 
       setExperience(currentExperience);
       setIsOnboardingOpen(!currentExperience.hasCompletedOnboarding);
-      setIsLoading(false);
 
-      if (!currentExperience.hasCompletedOnboarding) {
-        return;
-      }
+      if (!currentExperience.hasCompletedOnboarding) return;
 
       try {
-        const remotePreference = await getUserPreferenceByAnonymousId(
-          currentExperience.anonymousId,
-        );
+        const preference = await fetchOrRecreatePreference(currentExperience);
+        if (!isMounted) return;
 
-        if (!isMounted) {
-          return;
-        }
-
-        const syncedExperience =
-          mapUserPreferenceToLocalExperience(remotePreference);
-
+        const syncedExperience = mapUserPreferenceToLocalExperience(preference);
         saveLocalExperience(syncedExperience);
         setExperience(syncedExperience);
-        setUserPreference(remotePreference);
       } catch (error) {
-        if (error instanceof ApiError && error.statusCode === 404) {
-          try {
-            const recreatedPreference = await upsertUserPreference({
-              anonymousId: currentExperience.anonymousId,
-              neighborhood: currentExperience.neighborhood,
-              email: currentExperience.email.trim() || undefined,
-              notificationsEnabled: currentExperience.notificationsEnabled,
-              emailNotificationsEnabled:
-                currentExperience.emailNotificationsEnabled,
-              pushNotificationsEnabled:
-                currentExperience.pushNotificationsEnabled,
-              deviceType: currentExperience.deviceType,
-            });
-
-            if (!isMounted) {
-              return;
-            }
-
-            const recreatedExperience =
-              mapUserPreferenceToLocalExperience(recreatedPreference);
-
-            saveLocalExperience(recreatedExperience);
-            setExperience(recreatedExperience);
-            setUserPreference(recreatedPreference);
-            return;
-          } catch (recreateError) {
-            if (!isMounted) {
-              return;
-            }
-
-            setErrorMessage(getErrorMessage(recreateError));
-            return;
-          }
-        }
-
-        if (!isMounted) {
-          return;
-        }
-
-        setErrorMessage(getErrorMessage(error));
+        if (!isMounted) return;
+        setErrorMessage(getErrorMessage(error, FALLBACK_ERROR_MESSAGE));
       }
     }
 
@@ -154,81 +122,54 @@ export function useUserPreference() {
     };
   }, []);
 
-  async function submitOnboarding(values: PreferenceFormValues) {
-    if (!experience) {
-      return;
-    }
+  async function persistPreference(
+    savePreference: () => Promise<UserPreference>,
+  ) {
+    if (!experience) return;
 
     setIsSaving(true);
     setErrorMessage(null);
 
     try {
-      const savedPreference = await upsertUserPreference(
-        buildCreatePayload(experience, values),
-      );
-
+      const savedPreference = await savePreference();
       const nextExperience =
         mapUserPreferenceToLocalExperience(savedPreference);
 
       saveLocalExperience(nextExperience);
       setExperience(nextExperience);
-      setUserPreference(savedPreference);
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      setErrorMessage(getErrorMessage(error, FALLBACK_ERROR_MESSAGE));
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function submitOnboarding(values: PreferenceFormValues) {
+    if (!experience) return;
+    await persistPreference(() =>
+      upsertUserPreference(buildCreatePayload(experience, values)),
+    );
   }
 
   async function saveSettings(values: PreferenceFormValues) {
-    if (!experience) {
-      return;
-    }
-
-    setIsSaving(true);
-    setErrorMessage(null);
-
-    try {
-      const savedPreference = await updateUserPreference(
-        experience.anonymousId,
-        buildUpdatePayload(values),
-      );
-
-      const nextExperience =
-        mapUserPreferenceToLocalExperience(savedPreference);
-
-      saveLocalExperience(nextExperience);
-      setExperience(nextExperience);
-      setUserPreference(savedPreference);
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error));
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  function reopenOnboarding() {
-    setIsOnboardingOpen(true);
+    if (!experience) return;
+    await persistPreference(() =>
+      updateUserPreference(experience.anonymousId, buildUpdatePayload(values)),
+    );
   }
 
   function closeOnboarding() {
-    if (!experience?.hasCompletedOnboarding) {
-      return;
-    }
-
+    if (!experience?.hasCompletedOnboarding) return;
     setIsOnboardingOpen(false);
   }
 
   return {
     experience,
-    userPreference,
-    isLoading,
     isSaving,
     isOnboardingOpen,
     errorMessage,
     submitOnboarding,
     saveSettings,
-    reopenOnboarding,
     closeOnboarding,
   };
 }

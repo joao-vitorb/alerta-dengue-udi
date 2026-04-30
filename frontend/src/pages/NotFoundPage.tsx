@@ -1,31 +1,35 @@
 import { Link } from "react-router";
-import { AppShell } from "../components/layout/AppShell";
+import mainLogo from "/assets/logo/main-logo.png";
 
 export function NotFoundPage() {
   return (
-    <AppShell>
-      <section className="flex min-h-[60vh] items-center justify-center sm:min-h-[70vh]">
-        <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm sm:rounded-3xl sm:p-6 lg:rounded-4xl lg:p-8">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-600 sm:text-xs">
-            Página não encontrada
-          </p>
+    <main className="flex min-h-screen flex-col bg-page-bg px-3 py-6 sm:px-5 sm:py-8 lg:px-8 lg:py-10">
+      <header className="flex justify-center">
+        <img
+          src={mainLogo}
+          alt="Alerta Dengue UDI"
+          className="h-24 w-auto sm:h-28 md:h-32 lg:h-36"
+        />
+      </header>
 
-          <h2 className="mt-3 text-xl font-semibold text-slate-900 sm:mt-4 sm:text-2xl lg:text-3xl">
-            Não encontramos a rota que você tentou acessar.
+      <div className="flex flex-1 items-center justify-center">
+        <section className="w-full max-w-md rounded-[14px] border border-border-soft bg-white p-4 sm:rounded-[18px] sm:p-5 lg:p-6">
+          <h2 className="text-[16px] font-semibold text-text-heading sm:text-[17px] lg:text-[18px]">
+            Página Não Encontrada
           </h2>
 
-          <p className="mt-3 text-[13px] leading-6 text-slate-600 sm:mt-4 sm:text-sm sm:leading-7">
-            Volte para o mapa principal para continuar a navegação pelo sistema.
+          <p className="mt-2 text-[13px] leading-5 text-text-secondary sm:text-[14px] sm:leading-6 lg:text-[15px]">
+            Desculpe, a página que você está procurando não foi encontrada. Verifique o endereço ou volte para a página inicial.
           </p>
 
           <Link
             to="/"
-            className="mt-5 inline-flex rounded-full border border-sky-200 bg-sky-50 px-4 py-2.5 text-[13px] font-medium text-sky-700 transition hover:bg-sky-100 sm:mt-6 sm:px-5 sm:py-3 sm:text-sm"
+            className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-green text-[14px] font-semibold transition sm:mt-5 sm:h-12 sm:text-[15px] lg:text-[16px]"
           >
-            Voltar para o mapa
+            <span className="text-white">Voltar</span>
           </Link>
-        </div>
-      </section>
-    </AppShell>
+        </section>
+      </div>
+    </main>
   );
 }
