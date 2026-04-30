@@ -59,10 +59,3 @@ export type RecommendedHealthUnitsResponse = {
     neighborhood: string | null;
   };
 };
-
-export type HealthUnitsFilterState = {
-  search: string;
-  unitType: "ALL" | HealthUnitType;
-  careLevel: "ALL" | HealthCareLevel;
-  onlySelectedNeighborhood: boolean;
-};

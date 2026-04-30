@@ -1,14 +1,23 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useMemo } from "react";
 import { useSymptomChecker } from "../../hooks/useSymptomChecker";
-import { DashboardModalShell } from "./DashboardModalShell";
-import type { SymptomCheckerPayload } from "../../types/symptomChecker";
 import { faCircleInfo, faFileLines } from "../../lib/icons";
+import type {
+  SymptomCheckerClassification,
+  SymptomCheckerPayload,
+} from "../../types/symptomChecker";
+import { DashboardModalShell } from "./DashboardModalShell";
 
-const symptomOptions: Array<{
+type VirtualDiagnosisModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+};
+
+type SymptomOption = {
   key: keyof SymptomCheckerPayload;
   label: string;
-}> = [
+};
+
+const SYMPTOM_OPTIONS: SymptomOption[] = [
   { key: "fever", label: "Febre alta (acima de 38°C)" },
   { key: "headache", label: "Dor de cabeça intensa" },
   { key: "painBehindEyes", label: "Dor atrás dos olhos" },
@@ -19,21 +28,13 @@ const symptomOptions: Array<{
   { key: "dehydrationSigns", label: "Falta de apetite" },
 ];
 
-function getResultTone(classification: string) {
-  if (classification === "WARNING_SIGNS") {
-    return "border-[#f0c86b] bg-[#f8f3e8] text-[#a55b14]";
-  }
-
-  if (classification === "COMPATIBLE_SYMPTOMS") {
-    return "border-[#cde1ff] bg-[#eef5ff] text-[#3156b5]";
-  }
-
-  return "border-[#d8e8de] bg-[#effaf5] text-[#0b7e60]";
-}
-
-type VirtualDiagnosisModalProps = {
-  isOpen: boolean;
-  onClose: () => void;
+const RESULT_TONE_BY_CLASSIFICATION: Record<
+  SymptomCheckerClassification,
+  string
+> = {
+  WARNING_SIGNS: "border-warning-border bg-warning-bg text-warning-title",
+  COMPATIBLE_SYMPTOMS: "border-[#cde1ff] bg-[#eef5ff] text-[#3156b5]",
+  FEW_COMPATIBLE_SIGNS: "border-[#d8e8de] bg-[#effaf5] text-[#0b7e60]",
 };
 
 export function VirtualDiagnosisModal({
@@ -45,14 +46,11 @@ export function VirtualDiagnosisModal({
     result,
     isSubmitting,
     errorMessage,
+    selectedSymptomsCount,
     setSymptomValue,
     submit,
     reset,
   } = useSymptomChecker();
-
-  const selectedCount = useMemo(() => {
-    return Object.values(payload).filter(Boolean).length;
-  }, [payload]);
 
   function handleClose() {
     reset();
@@ -85,15 +83,15 @@ export function VirtualDiagnosisModal({
       </section>
 
       <div className="mt-4 sm:mt-5">
-        <p className="text-[15px] text-[#111318] sm:text-[16px] lg:text-[17px]">
+        <p className="text-[15px] text-text-primary sm:text-[16px] lg:text-[17px]">
           Selecione os sintomas que você está sentindo:
         </p>
 
         <div className="mt-3 space-y-2 sm:mt-4 sm:space-y-3">
-          {symptomOptions.map((item) => (
+          {SYMPTOM_OPTIONS.map((item) => (
             <label
               key={item.key}
-              className="flex items-center gap-2 text-[14px] text-[#111318] sm:gap-3 sm:text-[15px] lg:text-[16px]"
+              className="flex items-center gap-2 text-[14px] text-text-primary sm:gap-3 sm:text-[15px] lg:text-[16px]"
             >
               <input
                 type="checkbox"
@@ -110,14 +108,14 @@ export function VirtualDiagnosisModal({
       </div>
 
       {errorMessage ? (
-        <div className="mt-4 rounded-xl border border-[#ffd7d7] bg-[#fff2f2] px-3 py-3 text-sm text-[#bf4040] sm:mt-5 sm:rounded-2xl sm:px-4">
+        <div className="mt-4 rounded-xl border border-error-border bg-error-bg px-3 py-3 text-sm text-error-text sm:mt-5 sm:rounded-2xl sm:px-4">
           {errorMessage}
         </div>
       ) : null}
 
       {result ? (
         <section
-          className={`mt-4 rounded-[14px] border px-3 py-3 sm:mt-5 sm:rounded-[18px] sm:px-4 sm:py-4 ${getResultTone(result.classification)}`}
+          className={`mt-4 rounded-[14px] border px-3 py-3 sm:mt-5 sm:rounded-[18px] sm:px-4 sm:py-4 ${RESULT_TONE_BY_CLASSIFICATION[result.classification]}`}
         >
           <p className="text-[15px] font-semibold sm:text-[16px] lg:text-[18px]">
             {result.headline}
@@ -129,7 +127,7 @@ export function VirtualDiagnosisModal({
             {result.recommendation}
           </p>
           <p className="mt-3 text-[13px] sm:text-[14px]">
-            Sintomas marcados: {selectedCount}
+            Sintomas marcados: {selectedSymptomsCount}
           </p>
         </section>
       ) : null}

@@ -22,7 +22,7 @@ export function DashboardHeader({ onOpenPreferences }: DashboardHeaderProps) {
       <button
         type="button"
         onClick={onOpenPreferences}
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-[#d7dbd7] bg-white text-[16px] text-[#02051f] transition cursor-pointer hover:bg-[#f5f7f8] sm:h-11 sm:w-11 sm:text-[17px] lg:h-12 lg:w-12 lg:text-[18px]"
+        className="flex h-10 w-10 items-center justify-center rounded-full border border-border-soft bg-white text-[16px] text-brand-dark transition cursor-pointer hover:bg-surface-muted sm:h-11 sm:w-11 sm:text-[17px] lg:h-12 lg:w-12 lg:text-[18px]"
       >
         <FontAwesomeIcon icon={faSliders} />
       </button>

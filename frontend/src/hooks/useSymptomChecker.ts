@@ -4,32 +4,32 @@ import type {
   SymptomCheckerPayload,
   SymptomCheckerResponse,
 } from "../types/symptomChecker";
+import { getErrorMessage } from "../utils/errorMessage";
+
+const SYMPTOM_KEYS: Array<keyof SymptomCheckerPayload> = [
+  "fever",
+  "headache",
+  "painBehindEyes",
+  "bodyAches",
+  "jointPain",
+  "nausea",
+  "vomiting",
+  "rash",
+  "fatigue",
+  "abdominalPain",
+  "persistentVomiting",
+  "bleedingSigns",
+  "drowsiness",
+  "dehydrationSigns",
+];
+
+const FALLBACK_ERROR_MESSAGE = "Não foi possível analisar os sintomas agora.";
 
 function createInitialPayload(): SymptomCheckerPayload {
-  return {
-    fever: false,
-    headache: false,
-    painBehindEyes: false,
-    bodyAches: false,
-    jointPain: false,
-    nausea: false,
-    vomiting: false,
-    rash: false,
-    fatigue: false,
-    abdominalPain: false,
-    persistentVomiting: false,
-    bleedingSigns: false,
-    drowsiness: false,
-    dehydrationSigns: false,
-  };
-}
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Não foi possível analisar os sintomas agora.";
+  return SYMPTOM_KEYS.reduce((payload, key) => {
+    payload[key] = false;
+    return payload;
+  }, {} as SymptomCheckerPayload);
 }
 
 export function useSymptomChecker() {
@@ -40,15 +40,13 @@ export function useSymptomChecker() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const selectedSymptomsCount = useMemo(() => {
-    return Object.values(payload).filter(Boolean).length;
-  }, [payload]);
+  const selectedSymptomsCount = useMemo(
+    () => Object.values(payload).filter(Boolean).length,
+    [payload],
+  );
 
   function setSymptomValue(key: keyof SymptomCheckerPayload, value: boolean) {
-    setPayload((current) => ({
-      ...current,
-      [key]: value,
-    }));
+    setPayload((current) => ({ ...current, [key]: value }));
   }
 
   async function submit() {
@@ -59,7 +57,7 @@ export function useSymptomChecker() {
       const response = await checkSymptoms(payload);
       setResult(response);
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      setErrorMessage(getErrorMessage(error, FALLBACK_ERROR_MESSAGE));
       setResult(null);
     } finally {
       setIsSubmitting(false);

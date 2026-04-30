@@ -1,13 +1,13 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
 import { neighborhoodOptions } from "../../data/neighborhoodOptions";
+import { faSliders } from "../../lib/icons";
 import type {
   LocalExperience,
   PreferenceFormValues,
 } from "../../types/userPreference";
-import { DashboardModalShell } from "./DashboardModalShell";
 import { OnboardingToggle } from "../onboarding/OnboardingToggle";
-import { faSliders } from "../../lib/icons";
+import { DashboardModalShell } from "./DashboardModalShell";
 
 type PreferencesModalProps = {
   isOpen: boolean;
@@ -19,8 +19,26 @@ type PreferencesModalProps = {
   onSubmit: (values: PreferenceFormValues) => Promise<void> | void;
 };
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  return EMAIL_PATTERN.test(value.trim());
+}
+
+function buildSubmitValues(
+  values: PreferenceFormValues,
+  isDesktop: boolean,
+): PreferenceFormValues {
+  const isEmailRequired =
+    values.notificationsEnabled && values.emailNotificationsEnabled;
+
+  return {
+    ...values,
+    pushNotificationsEnabled:
+      !isDesktop && values.notificationsEnabled && values.pushNotificationsEnabled,
+    emailNotificationsEnabled: isEmailRequired,
+    email: isEmailRequired ? values.email.trim() : "",
+  };
 }
 
 export function PreferencesModal({
@@ -39,12 +57,11 @@ export function PreferencesModal({
   );
 
   const isDesktop = experience?.deviceType === "DESKTOP";
+  const isEmailRequired =
+    formValues.notificationsEnabled && formValues.emailNotificationsEnabled;
 
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
+    if (!isOpen) return;
     setFormValues(initialValues);
     setLocalErrorMessage(null);
   }, [isOpen, initialValues]);
@@ -53,60 +70,41 @@ export function PreferencesModal({
     key: K,
     value: PreferenceFormValues[K],
   ) {
-    setFormValues((current) => ({
-      ...current,
-      [key]: value,
-    }));
+    setFormValues((current) => ({ ...current, [key]: value }));
   }
 
   function handleNotificationsEnabledChange(value: boolean) {
-    setField("notificationsEnabled", value);
+    setFormValues((current) => ({
+      ...current,
+      notificationsEnabled: value,
+      pushNotificationsEnabled: value ? current.pushNotificationsEnabled : false,
+      emailNotificationsEnabled: value
+        ? current.emailNotificationsEnabled
+        : false,
+    }));
+  }
 
-    if (!value) {
-      setField("pushNotificationsEnabled", false);
-      setField("emailNotificationsEnabled", false);
+  function validate(): string | null {
+    if (!formValues.neighborhood) return "Selecione um bairro.";
+    if (isEmailRequired && !formValues.email.trim()) {
+      return "Informe um email para receber notificações.";
     }
+    if (isEmailRequired && !isValidEmail(formValues.email)) {
+      return "Informe um email válido.";
+    }
+    return null;
   }
 
   async function handleSave() {
     setLocalErrorMessage(null);
+    const validationError = validate();
 
-    if (!formValues.neighborhood) {
-      setLocalErrorMessage("Selecione um bairro.");
+    if (validationError) {
+      setLocalErrorMessage(validationError);
       return;
     }
 
-    if (
-      formValues.notificationsEnabled &&
-      formValues.emailNotificationsEnabled &&
-      !formValues.email.trim()
-    ) {
-      setLocalErrorMessage("Informe um email para receber notificações.");
-      return;
-    }
-
-    if (
-      formValues.notificationsEnabled &&
-      formValues.emailNotificationsEnabled &&
-      !isValidEmail(formValues.email)
-    ) {
-      setLocalErrorMessage("Informe um email válido.");
-      return;
-    }
-
-    await onSubmit({
-      ...formValues,
-      pushNotificationsEnabled: isDesktop
-        ? false
-        : formValues.notificationsEnabled &&
-          formValues.pushNotificationsEnabled,
-      emailNotificationsEnabled:
-        formValues.notificationsEnabled && formValues.emailNotificationsEnabled,
-      email:
-        formValues.notificationsEnabled && formValues.emailNotificationsEnabled
-          ? formValues.email.trim()
-          : "",
-    });
+    await onSubmit(buildSubmitValues(formValues, isDesktop));
   }
 
   return (
@@ -118,13 +116,13 @@ export function PreferencesModal({
     >
       <div className="space-y-4 sm:space-y-5">
         <div>
-          <label className="mb-2 block text-[14px] font-semibold text-[#111318] sm:text-[15px]">
+          <label className="mb-2 block text-[14px] font-semibold text-text-primary sm:text-[15px]">
             Bairro
           </label>
           <select
             value={formValues.neighborhood}
             onChange={(event) => setField("neighborhood", event.target.value)}
-            className="h-11 w-full rounded-lg border border-[#e3e7eb] bg-[#f6f7f9] px-3 text-[14px] text-[#111318] outline-none transition cursor-pointer focus:border-[#0f8f67] sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
+            className="h-11 w-full rounded-lg border border-[#e3e7eb] bg-[#f6f7f9] px-3 text-[14px] text-text-primary outline-none transition cursor-pointer focus:border-[#0f8f67] sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
           >
             {neighborhoodOptions.map((option) => (
               <option key={option} value={option}>
@@ -135,7 +133,7 @@ export function PreferencesModal({
         </div>
 
         <div className="flex items-center justify-between gap-3 sm:gap-4">
-          <p className="text-[14px] font-semibold text-[#111318] sm:text-[15px]">
+          <p className="text-[14px] font-semibold text-text-primary sm:text-[15px]">
             Ativar notificações
           </p>
 
@@ -149,8 +147,8 @@ export function PreferencesModal({
           <p
             className={`text-[14px] font-semibold sm:text-[15px] ${
               formValues.notificationsEnabled && !isDesktop
-                ? "text-[#111318]"
-                : "text-[#9aa1b5]"
+                ? "text-text-primary"
+                : "text-text-muted"
             }`}
           >
             Notificações push
@@ -167,8 +165,8 @@ export function PreferencesModal({
           <p
             className={`text-[14px] font-semibold sm:text-[15px] ${
               formValues.notificationsEnabled
-                ? "text-[#111318]"
-                : "text-[#9aa1b5]"
+                ? "text-text-primary"
+                : "text-text-muted"
             }`}
           >
             Notificações por email
@@ -181,10 +179,9 @@ export function PreferencesModal({
           />
         </div>
 
-        {formValues.notificationsEnabled &&
-        formValues.emailNotificationsEnabled ? (
+        {isEmailRequired ? (
           <div>
-            <label className="mb-2 block text-[14px] font-semibold text-[#111318] sm:text-[15px]">
+            <label className="mb-2 block text-[14px] font-semibold text-text-primary sm:text-[15px]">
               Email
             </label>
             <input
@@ -192,7 +189,7 @@ export function PreferencesModal({
               value={formValues.email}
               onChange={(event) => setField("email", event.target.value)}
               placeholder="Digite seu email"
-              className="h-11 w-full rounded-lg border border-[#e3e7eb] bg-[#f6f7f9] px-3 text-[14px] text-[#111318] outline-none transition placeholder:text-[#9aa1b5] focus:border-[#0f8f67] sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
+              className="h-11 w-full rounded-lg border border-[#e3e7eb] bg-[#f6f7f9] px-3 text-[14px] text-text-primary outline-none transition placeholder:text-text-muted focus:border-[#0f8f67] sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
             />
           </div>
         ) : null}
@@ -204,7 +201,7 @@ export function PreferencesModal({
         ) : null}
 
         {localErrorMessage || errorMessage ? (
-          <div className="rounded-xl border border-[#ffd7d7] bg-[#fff2f2] px-3 py-3 text-sm text-[#bf4040] sm:rounded-2xl sm:px-4">
+          <div className="rounded-xl border border-error-border bg-error-bg px-3 py-3 text-sm text-error-text sm:rounded-2xl sm:px-4">
             {localErrorMessage ?? errorMessage}
           </div>
         ) : null}
@@ -213,7 +210,7 @@ export function PreferencesModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-11 items-center justify-center rounded-lg border border-[#d8dde3] bg-white px-4 text-[14px] font-semibold text-[#111318] transition cursor-pointer hover:bg-[#f7f8f9] sm:rounded-xl sm:px-5 sm:text-[15px]"
+            className="flex h-11 items-center justify-center rounded-lg border border-border-card bg-white px-4 text-[14px] font-semibold text-text-primary transition cursor-pointer hover:bg-surface-muted sm:rounded-xl sm:px-5 sm:text-[15px]"
           >
             Fechar
           </button>
@@ -222,7 +219,7 @@ export function PreferencesModal({
             type="button"
             onClick={() => void handleSave()}
             disabled={isSubmitting}
-            className="flex h-11 items-center justify-center rounded-lg bg-[#02051f] px-5 text-[14px] font-semibold text-white transition cursor-pointer hover:bg-[#0a1030] disabled:cursor-not-allowed disabled:opacity-70 sm:rounded-xl sm:px-6 sm:text-[15px]"
+            className="flex h-11 items-center justify-center rounded-lg bg-brand-dark px-5 text-[14px] font-semibold text-white transition cursor-pointer hover:bg-brand-dark-hover disabled:cursor-not-allowed disabled:opacity-70 sm:rounded-xl sm:px-6 sm:text-[15px]"
           >
             {isSubmitting ? "Salvando..." : "Salvar"}
           </button>

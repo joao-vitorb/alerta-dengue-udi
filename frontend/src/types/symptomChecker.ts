@@ -33,10 +33,3 @@ export type SymptomCheckerResponse = {
   detectedSymptoms: string[];
   disclaimer: string;
 };
-
-export type SymptomChecklistItem = {
-  key: keyof SymptomCheckerPayload;
-  label: string;
-  description: string;
-  category: "compatible" | "warning";
-};

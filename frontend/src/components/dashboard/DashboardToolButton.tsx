@@ -1,8 +1,9 @@
+import type { ReactNode } from "react";
+
 type DashboardToolButtonProps = {
   title: string;
   description: string;
-  icon: React.ReactNode;
-  gradientClassName: string;
+  icon: ReactNode;
   onClick: () => void;
 };
 
@@ -16,7 +17,7 @@ export function DashboardToolButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-2 rounded-xl px-3 py-3 text-left text-white transition cursor-pointer hover:scale-[1.01] bg-[linear-gradient(90deg,#08c97a_0%,#10c0b0_100%)] sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-4`}
+      className="flex w-full items-center gap-2 rounded-xl bg-[linear-gradient(90deg,#08c97a_0%,#10c0b0_100%)] px-3 py-3 text-left text-white transition cursor-pointer hover:scale-[1.01] sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-4"
     >
       <span className="shrink-0">{icon}</span>
 

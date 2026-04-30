@@ -17,8 +17,8 @@ export function OnboardingStepIndicator({
             key={index}
             className={`block h-1.5 rounded-full transition-all duration-200 sm:h-2 ${
               isActive
-                ? "w-8 bg-[#13a36d] sm:w-12"
-                : "w-7 bg-[#d9dde3] sm:w-10"
+                ? "w-8 bg-brand-green sm:w-12"
+                : "w-7 bg-disabled-bg sm:w-10"
             }`}
           />
         );

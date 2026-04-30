@@ -8,19 +8,14 @@ export function CtrlScrollZoomHandler() {
     const container = map.getContainer();
 
     function handleWheel(event: WheelEvent) {
-      if (!event.ctrlKey) {
-        return;
-      }
+      if (!event.ctrlKey) return;
 
       event.preventDefault();
       event.stopPropagation();
 
       if (event.deltaY < 0) {
         map.zoomIn();
-        return;
-      }
-
-      if (event.deltaY > 0) {
+      } else if (event.deltaY > 0) {
         map.zoomOut();
       }
     }

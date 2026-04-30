@@ -1,4 +1,4 @@
-export type NeighborhoodBoundary = {
+type NeighborhoodBoundary = {
   name: string;
   positions: Array<[number, number]>;
 };

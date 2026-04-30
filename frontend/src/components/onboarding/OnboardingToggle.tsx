@@ -18,9 +18,9 @@ export function OnboardingToggle({
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-7 w-13 items-center cursor-pointer rounded-full transition ${
         disabled
-          ? "cursor-not-allowed bg-[#d9dde3]"
+          ? "cursor-not-allowed bg-disabled-bg"
           : checked
-            ? "bg-[#02051f]"
+            ? "bg-brand-dark"
             : "bg-[#cfd3d9]"
       }`}
     >

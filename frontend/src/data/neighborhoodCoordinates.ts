@@ -12,7 +12,7 @@ export const uberlandiaBounds: LatLngBoundsExpression = [
   [-18.78, -48.12],
 ];
 
-export const neighborhoodCoordinates: NeighborhoodCoordinate[] = [
+const neighborhoodCoordinates: NeighborhoodCoordinate[] = [
   {
     name: "Tibery",
     position: [-18.8892, -48.2508],
