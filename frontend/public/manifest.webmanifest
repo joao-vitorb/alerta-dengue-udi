@@ -1,0 +1,26 @@
+{
+  "name": "Alerta Dengue UDI",
+  "short_name": "Alerta Dengue",
+  "description": "Plataforma web de prevenção à dengue para moradores de Uberlândia-MG.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eaf6f2",
+  "theme_color": "#02051f",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/assets/logo/tab-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/logo/tab-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

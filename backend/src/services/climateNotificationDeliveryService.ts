@@ -94,6 +94,7 @@ export async function sendAutomatedClimatePush(input: {
   };
 
   let firstReason: string | null = null;
+  let firstStatusCode: number | undefined;
   let successCount = 0;
 
   for (const subscription of input.subscriptions) {
@@ -112,14 +113,19 @@ export async function sendAutomatedClimatePush(input: {
     }
 
     firstReason ??= result.reason;
+    firstStatusCode ??= result.statusCode;
   }
 
   if (successCount === 0) {
+    const reason = firstReason ?? "PUSH_DELIVERY_FAILED";
+
     return {
       delivered: false,
-      reason: firstReason ?? "PUSH_DELIVERY_FAILED",
+      reason,
       metadata: {
         subscriptions: input.subscriptions.length,
+        reason,
+        statusCode: firstStatusCode ?? null,
       },
     };
   }

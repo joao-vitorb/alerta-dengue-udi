@@ -12,6 +12,7 @@ export type WebPushSubscription = {
 export type WebPushSendResult = {
   delivered: boolean;
   reason: string | null;
+  statusCode?: number;
 };
 
 let webPushConfigured = false;
@@ -33,6 +34,26 @@ function ensureWebPushConfigured() {
   return true;
 }
 
+type WebPushErrorDetails = {
+  message: string;
+  statusCode?: number;
+  body?: string;
+};
+
+function extractWebPushErrorDetails(error: unknown): WebPushErrorDetails {
+  const candidate = error as { statusCode?: unknown; body?: unknown };
+
+  return {
+    message:
+      error instanceof Error ? error.message : "WEB_PUSH_DELIVERY_FAILED",
+    statusCode:
+      typeof candidate?.statusCode === "number"
+        ? candidate.statusCode
+        : undefined,
+    body: typeof candidate?.body === "string" ? candidate.body : undefined,
+  };
+}
+
 export async function sendWebPushMessage(
   subscription: WebPushSubscription,
   payload: unknown,
@@ -52,10 +73,19 @@ export async function sendWebPushMessage(
       reason: null,
     };
   } catch (error) {
+    const details = extractWebPushErrorDetails(error);
+
+    console.error("[web-push] Falha ao enviar notificação:", {
+      ...details,
+      endpoint: subscription.endpoint,
+    });
+
     return {
       delivered: false,
-      reason:
-        error instanceof Error ? error.message : "WEB_PUSH_DELIVERY_FAILED",
+      reason: details.body
+        ? `${details.message} | ${details.body}`
+        : details.message,
+      statusCode: details.statusCode,
     };
   }
 }

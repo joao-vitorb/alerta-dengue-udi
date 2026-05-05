@@ -56,14 +56,28 @@ function readPositiveNumber(name: string, fallback: number): number {
   return parsed;
 }
 
+function readStringList(name: string, fallback: string[]): string[] {
+  const raw = process.env[name];
+
+  if (raw === undefined || raw.trim().length === 0) {
+    return fallback;
+  }
+
+  return raw
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+}
+
+const DEFAULT_FRONTEND_URL = "http://localhost:5173";
+const frontendUrl = readOptionalString("FRONTEND_URL", DEFAULT_FRONTEND_URL);
+
 export const env = {
   port: readPort("PORT", 3333),
   nodeEnv: readOptionalString("NODE_ENV", "development"),
-  frontendUrl: readOptionalString("FRONTEND_URL", "http://localhost:5173"),
-  appPublicUrl: readOptionalString(
-    "APP_PUBLIC_URL",
-    process.env.FRONTEND_URL ?? "http://localhost:5173",
-  ),
+  frontendUrl,
+  allowedOrigins: readStringList("ALLOWED_ORIGINS", [frontendUrl]),
+  appPublicUrl: readOptionalString("APP_PUBLIC_URL", frontendUrl),
   databaseUrl: readRequiredString("DATABASE_URL"),
   weather: {
     apiBaseUrl: readOptionalString(

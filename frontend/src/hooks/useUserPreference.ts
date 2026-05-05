@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { ApiError } from "../errors/ApiError";
 import {
+  finalizePushSubscription,
+  preparePushSubscription,
+} from "../services/pushSubscriptionSyncService";
+import {
   getUserPreferenceByAnonymousId,
   updateUserPreference,
   upsertUserPreference,
@@ -124,8 +128,8 @@ export function useUserPreference() {
 
   async function persistPreference(
     savePreference: () => Promise<UserPreference>,
-  ) {
-    if (!experience) return;
+  ): Promise<UserPreference | null> {
+    if (!experience) return null;
 
     setIsSaving(true);
     setErrorMessage(null);
@@ -137,24 +141,67 @@ export function useUserPreference() {
 
       saveLocalExperience(nextExperience);
       setExperience(nextExperience);
+
+      return savedPreference;
     } catch (error) {
       setErrorMessage(getErrorMessage(error, FALLBACK_ERROR_MESSAGE));
+      return null;
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function submitOnboarding(values: PreferenceFormValues) {
+  async function persistWithPushSync(
+    values: PreferenceFormValues,
+    saveFn: (
+      currentExperience: LocalExperience,
+      effectiveValues: PreferenceFormValues,
+    ) => Promise<UserPreference>,
+  ) {
     if (!experience) return;
-    await persistPreference(() =>
-      upsertUserPreference(buildCreatePayload(experience, values)),
+
+    const currentExperience = experience;
+    const prepared = await preparePushSubscription({
+      desiredEnabled: values.pushNotificationsEnabled,
+      deviceType: currentExperience.deviceType,
+    });
+
+    const effectiveValues: PreferenceFormValues = {
+      ...values,
+      pushNotificationsEnabled: prepared.effectiveEnabled,
+    };
+
+    const saved = await persistPreference(() =>
+      saveFn(currentExperience, effectiveValues),
+    );
+
+    if (!saved) return;
+
+    const finalizeError = await finalizePushSubscription({
+      anonymousId: saved.anonymousId,
+      prepared,
+    });
+
+    const pushError = prepared.errorMessage ?? finalizeError;
+    if (pushError) {
+      setErrorMessage((current) => current ?? pushError);
+    }
+  }
+
+  async function submitOnboarding(values: PreferenceFormValues) {
+    await persistWithPushSync(values, (currentExperience, effectiveValues) =>
+      upsertUserPreference(
+        buildCreatePayload(currentExperience, effectiveValues),
+      ),
     );
   }
 
   async function saveSettings(values: PreferenceFormValues) {
-    if (!experience) return;
-    await persistPreference(() =>
-      updateUserPreference(experience.anonymousId, buildUpdatePayload(values)),
+    await persistWithPushSync(values, (currentExperience, effectiveValues) =>
+      updateUserPreference(
+        currentExperience.anonymousId,
+        buildUpdatePayload(effectiveValues),
+      ),
     );
   }
 
