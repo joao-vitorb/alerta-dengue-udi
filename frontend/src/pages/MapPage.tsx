@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { ClimateModal } from "../components/dashboard/ClimateModal";
 import { DashboardAlertBanner } from "../components/dashboard/DashboardAlertBanner";
 import { DashboardHeader } from "../components/dashboard/DashboardHeader";
@@ -7,8 +7,10 @@ import { NearbyHealthUnitsModal } from "../components/dashboard/NearbyHealthUnit
 import { PreferencesModal } from "../components/dashboard/PreferencesModal";
 import { PreventionTipsCard } from "../components/dashboard/PreventionTipsCard";
 import { VirtualDiagnosisModal } from "../components/dashboard/VirtualDiagnosisModal";
-import { MapCanvas } from "../components/map/MapCanvas";
+import { MapCanvasSkeleton } from "../components/map/MapCanvasSkeleton";
 import { OnboardingModal } from "../components/onboarding/OnboardingModal";
+
+const MapCanvas = lazy(() => import("../components/map/MapCanvas"));
 import { neighborhoodOptions } from "../data/neighborhoodOptions";
 import { useBrowserLocation } from "../hooks/useBrowserLocation";
 import { useMapHealthUnits } from "../hooks/useMapHealthUnits";
@@ -178,11 +180,13 @@ export function MapPage() {
 
         <section className="mt-3 grid gap-3 sm:mt-4 sm:gap-4 lg:grid-cols-[1fr_332px]">
           <div>
-            <MapCanvas
-              selectedNeighborhood={experience?.neighborhood}
-              recommendedUnits={mapHealthUnits}
-              userLocation={location}
-            />
+            <Suspense fallback={<MapCanvasSkeleton />}>
+              <MapCanvas
+                selectedNeighborhood={experience?.neighborhood}
+                recommendedUnits={mapHealthUnits}
+                userLocation={location}
+              />
+            </Suspense>
           </div>
 
           <div className="space-y-3 sm:space-y-4">

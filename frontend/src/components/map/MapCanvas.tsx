@@ -104,7 +104,7 @@ function hasCoordinates(unit: HealthUnit): unit is HealthUnit & {
   return unit.latitude !== null && unit.longitude !== null;
 }
 
-export function MapCanvas({
+function MapCanvas({
   selectedNeighborhood,
   recommendedUnits = [],
   userLocation = null,
@@ -249,3 +249,5 @@ export function MapCanvas({
     </section>
   );
 }
+
+export default MapCanvas;
