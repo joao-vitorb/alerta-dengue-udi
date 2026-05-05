@@ -1,7 +1,9 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import pinoHttp from "pino-http";
 import { corsOptions } from "./config/cors";
+import { logger } from "./lib/logger";
 import { errorHandler } from "./middlewares/errorHandler";
 import { notFoundHandler } from "./middlewares/notFoundHandler";
 import { generalApiRateLimiter } from "./middlewares/rateLimiters";
@@ -11,6 +13,7 @@ const app = express();
 
 app.set("trust proxy", 1);
 
+app.use(pinoHttp({ logger }));
 app.use(helmet());
 app.use(cors(corsOptions));
 

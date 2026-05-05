@@ -75,6 +75,7 @@ const frontendUrl = readOptionalString("FRONTEND_URL", DEFAULT_FRONTEND_URL);
 export const env = {
   port: readPort("PORT", 3333),
   nodeEnv: readOptionalString("NODE_ENV", "development"),
+  logLevel: readOptionalString("LOG_LEVEL", "info"),
   frontendUrl,
   allowedOrigins: readStringList("ALLOWED_ORIGINS", [frontendUrl]),
   appPublicUrl: readOptionalString("APP_PUBLIC_URL", frontendUrl),

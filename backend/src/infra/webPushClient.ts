@@ -1,5 +1,8 @@
 import webpush from "web-push";
 import { env } from "../config/env";
+import { logger } from "../lib/logger";
+
+const webPushLogger = logger.child({ module: "web-push" });
 
 export type WebPushSubscription = {
   endpoint: string;
@@ -83,10 +86,10 @@ export async function sendWebPushMessage(
   } catch (error) {
     const details = extractWebPushErrorDetails(error);
 
-    console.error("[web-push] Falha ao enviar notificação:", {
-      ...details,
-      endpoint: subscription.endpoint,
-    });
+    webPushLogger.error(
+      { ...details, endpoint: subscription.endpoint },
+      "Failed to deliver web push notification",
+    );
 
     return {
       delivered: false,
