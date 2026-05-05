@@ -1,5 +1,8 @@
 import { env } from "../config/env";
+import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
+
+const schedulerLogger = logger.child({ module: "climate-scheduler" });
 import {
   createClimateNotificationLog,
   getClimateNotificationWindowKey,
@@ -341,7 +344,7 @@ export function startClimateNotificationScheduler() {
         source: "scheduler",
       });
     } catch (error) {
-      console.error("Climate notification scheduler failed:", error);
+      schedulerLogger.error({ err: error }, "Scheduled cycle failed");
     }
   };
 

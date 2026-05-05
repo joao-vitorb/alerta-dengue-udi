@@ -1,4 +1,5 @@
 import type { CorsOptions } from "cors";
+import { logger } from "../lib/logger";
 import { env } from "./env";
 
 const WILDCARD_ORIGIN = "*";
@@ -42,9 +43,9 @@ function assertAllowedOriginsAreSafe(allowedOrigins: string[]): void {
   );
 
   if (tunnelEntries.length > 0) {
-    console.warn(
-      "[cors] Aviso: ALLOWED_ORIGINS contém domínios de túnel em produção:",
-      tunnelEntries,
+    logger.warn(
+      { tunnelEntries },
+      "ALLOWED_ORIGINS contains tunnel domains in production",
     );
   }
 }

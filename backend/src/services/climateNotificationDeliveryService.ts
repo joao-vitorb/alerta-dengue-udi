@@ -8,9 +8,12 @@ import {
   sendWebPushMessage,
   type WebPushSubscription,
 } from "../infra/webPushClient";
+import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import type { ClimateNotificationRule } from "./climateNotificationRuleService";
 import { deletePushSubscriptionByEndpoint } from "./pushSubscriptionService";
+
+const pushLogger = logger.child({ module: "push-delivery" });
 
 type WeatherDetails = {
   probability: number | null;
@@ -153,17 +156,17 @@ async function pruneExpiredSubscription(endpoint: string): Promise<number> {
     const removed = await deletePushSubscriptionByEndpoint(endpoint);
 
     if (removed > 0) {
-      console.info(
-        "[push] Inscrição expirada removida do banco:",
+      pushLogger.info(
         { endpoint, removed },
+        "Removed expired push subscription from database",
       );
     }
 
     return removed;
   } catch (error) {
-    console.error(
-      "[push] Falha ao remover inscrição expirada:",
-      { endpoint, error },
+    pushLogger.error(
+      { endpoint, err: error },
+      "Failed to remove expired push subscription",
     );
 
     return 0;
