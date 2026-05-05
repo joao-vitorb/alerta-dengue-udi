@@ -3,6 +3,7 @@ import {
   deletePushSubscriptionController,
   upsertPushSubscriptionController,
 } from "../controllers/pushSubscriptionController";
+import { pushSubscriptionRateLimiter } from "../middlewares/rateLimiters";
 import { validateRequest } from "../middlewares/validateRequest";
 import {
   anonymousIdParamSchema,
@@ -11,6 +12,8 @@ import {
 import { asyncHandler } from "../utils/asyncHandler";
 
 const pushSubscriptionRouter = Router();
+
+pushSubscriptionRouter.use(pushSubscriptionRateLimiter);
 
 pushSubscriptionRouter.post(
   "/",
