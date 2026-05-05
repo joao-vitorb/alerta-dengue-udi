@@ -1,8 +1,10 @@
 import cors, { type CorsOptions } from "cors";
 import express from "express";
+import helmet from "helmet";
 import { env } from "./config/env";
 import { errorHandler } from "./middlewares/errorHandler";
 import { notFoundHandler } from "./middlewares/notFoundHandler";
+import { generalApiRateLimiter } from "./middlewares/rateLimiters";
 import { router } from "./routes";
 
 const WILDCARD_ORIGIN = "*";
@@ -47,6 +49,9 @@ const corsOptions: CorsOptions = {
 
 const app = express();
 
+app.set("trust proxy", 1);
+
+app.use(helmet());
 app.use(cors(corsOptions));
 
 app.use(express.json());
@@ -59,7 +64,7 @@ app.get("/", (_request, response) => {
   });
 });
 
-app.use("/api", router);
+app.use("/api", generalApiRateLimiter, router);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
