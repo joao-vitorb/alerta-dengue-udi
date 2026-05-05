@@ -124,3 +124,20 @@ model PushSubscription {
 
     @@index([createdAt])
 }
+
+model ClimateNotificationLog {
+    id           Int      @id @default(autoincrement())
+    anonymousId  String
+    neighborhood String
+    channel      String
+    ruleKey      String
+    windowKey    String
+    status       String
+    message      String
+    metadata     Json?
+    createdAt    DateTime @default(now()) @db.Timestamptz()
+
+    @@index([anonymousId])
+    @@index([windowKey])
+    @@index([anonymousId, channel, ruleKey, windowKey, status])
+}

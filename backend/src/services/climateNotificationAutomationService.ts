@@ -2,7 +2,6 @@ import { env } from "../config/env";
 import { prisma } from "../lib/prisma";
 import {
   createClimateNotificationLog,
-  ensureClimateNotificationLogTable,
   getClimateNotificationWindowKey,
   hasSentClimateNotification,
   type ClimateNotificationChannel,
@@ -305,8 +304,6 @@ export async function runAutomatedClimateNotificationCycle(
   isRunning = true;
 
   try {
-    await ensureClimateNotificationLogTable();
-
     const summary = buildInitialSummary(options);
     const windowKey = getClimateNotificationWindowKey();
     const preferences = await loadActiveUserPreferences();

@@ -1,39 +1,15 @@
+import type { Prisma } from "../generated/prisma/client";
 import { prisma } from "../lib/prisma";
 
 export type ClimateNotificationChannel = "EMAIL" | "PUSH";
 export type ClimateNotificationStatus = "SENT" | "FAILED" | "SKIPPED";
 
+const CLIMATE_NOTIFICATION_TIMEZONE = "America/Sao_Paulo";
+
 export function getClimateNotificationWindowKey(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
+    timeZone: CLIMATE_NOTIFICATION_TIMEZONE,
   }).format(date);
-}
-
-export async function ensureClimateNotificationLogTable() {
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS "ClimateNotificationLog" (
-      "id" BIGSERIAL PRIMARY KEY,
-      "anonymousId" TEXT NOT NULL,
-      "neighborhood" TEXT NOT NULL,
-      "channel" TEXT NOT NULL,
-      "ruleKey" TEXT NOT NULL,
-      "windowKey" TEXT NOT NULL,
-      "status" TEXT NOT NULL,
-      "message" TEXT NOT NULL,
-      "metadata" JSONB,
-      "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-  `);
-
-  await prisma.$executeRawUnsafe(`
-    CREATE INDEX IF NOT EXISTS "ClimateNotificationLog_anonymousId_idx"
-    ON "ClimateNotificationLog" ("anonymousId");
-  `);
-
-  await prisma.$executeRawUnsafe(`
-    CREATE INDEX IF NOT EXISTS "ClimateNotificationLog_windowKey_idx"
-    ON "ClimateNotificationLog" ("windowKey");
-  `);
 }
 
 export async function hasSentClimateNotification(input: {
@@ -42,24 +18,18 @@ export async function hasSentClimateNotification(input: {
   ruleKey: string;
   windowKey: string;
 }) {
-  const rows = await prisma.$queryRawUnsafe<Array<{ id: bigint }>>(
-    `
-      SELECT "id"
-      FROM "ClimateNotificationLog"
-      WHERE "anonymousId" = $1
-        AND "channel" = $2
-        AND "ruleKey" = $3
-        AND "windowKey" = $4
-        AND "status" = 'SENT'
-      LIMIT 1
-    `,
-    input.anonymousId,
-    input.channel,
-    input.ruleKey,
-    input.windowKey,
-  );
+  const existing = await prisma.climateNotificationLog.findFirst({
+    where: {
+      anonymousId: input.anonymousId,
+      channel: input.channel,
+      ruleKey: input.ruleKey,
+      windowKey: input.windowKey,
+      status: "SENT",
+    },
+    select: { id: true },
+  });
 
-  return rows.length > 0;
+  return existing !== null;
 }
 
 export async function createClimateNotificationLog(input: {
@@ -72,29 +42,24 @@ export async function createClimateNotificationLog(input: {
   message: string;
   metadata?: unknown;
 }) {
-  const metadataAsJson = input.metadata ? JSON.stringify(input.metadata) : null;
+  await prisma.climateNotificationLog.create({
+    data: {
+      anonymousId: input.anonymousId,
+      neighborhood: input.neighborhood,
+      channel: input.channel,
+      ruleKey: input.ruleKey,
+      windowKey: input.windowKey,
+      status: input.status,
+      message: input.message,
+      metadata: serializeMetadata(input.metadata),
+    },
+  });
+}
 
-  await prisma.$executeRawUnsafe(
-    `
-      INSERT INTO "ClimateNotificationLog" (
-        "anonymousId",
-        "neighborhood",
-        "channel",
-        "ruleKey",
-        "windowKey",
-        "status",
-        "message",
-        "metadata"
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
-    `,
-    input.anonymousId,
-    input.neighborhood,
-    input.channel,
-    input.ruleKey,
-    input.windowKey,
-    input.status,
-    input.message,
-    metadataAsJson,
-  );
+function serializeMetadata(metadata: unknown): Prisma.InputJsonValue | undefined {
+  if (metadata === undefined || metadata === null) {
+    return undefined;
+  }
+
+  return metadata as Prisma.InputJsonValue;
 }
