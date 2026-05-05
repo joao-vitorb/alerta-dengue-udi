@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireAutomationSecret } from "../middlewares/requireAutomationSecret";
 import { runAutomatedClimateNotificationCycle } from "../services/climateNotificationAutomationService";
 import { asyncHandler } from "../utils/asyncHandler";
 
@@ -6,6 +7,7 @@ const climateNotificationAutomationRouter = Router();
 
 climateNotificationAutomationRouter.post(
   "/climate-notifications/run",
+  requireAutomationSecret,
   asyncHandler(async (request, response) => {
     const dryRun = request.query.dryRun === "true";
 

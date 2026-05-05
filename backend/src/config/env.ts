@@ -113,5 +113,6 @@ export const env = {
       "CLIMATE_NOTIFICATION_STARTUP_DELAY_MS",
       10_000,
     ),
+    triggerSecret: readOptionalString("AUTOMATION_TRIGGER_SECRET"),
   },
 };
