@@ -15,6 +15,14 @@ export type WebPushSendResult = {
   statusCode?: number;
 };
 
+const EXPIRED_PUSH_STATUS_CODES = new Set([404, 410]);
+
+export function isExpiredPushSubscriptionStatus(
+  statusCode: number | undefined,
+): boolean {
+  return statusCode !== undefined && EXPIRED_PUSH_STATUS_CODES.has(statusCode);
+}
+
 let webPushConfigured = false;
 
 function ensureWebPushConfigured() {

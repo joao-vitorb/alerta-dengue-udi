@@ -4,11 +4,13 @@ import {
   type EmailJsSendResult,
 } from "../infra/emailJsClient";
 import {
+  isExpiredPushSubscriptionStatus,
   sendWebPushMessage,
   type WebPushSubscription,
 } from "../infra/webPushClient";
 import { prisma } from "../lib/prisma";
 import type { ClimateNotificationRule } from "./climateNotificationRuleService";
+import { deletePushSubscriptionByEndpoint } from "./pushSubscriptionService";
 
 type WeatherDetails = {
   probability: number | null;
@@ -96,6 +98,7 @@ export async function sendAutomatedClimatePush(input: {
   let firstReason: string | null = null;
   let firstStatusCode: number | undefined;
   let successCount = 0;
+  let expiredCount = 0;
 
   for (const subscription of input.subscriptions) {
     const result = await sendWebPushMessage(subscription, payload);
@@ -112,6 +115,10 @@ export async function sendAutomatedClimatePush(input: {
       };
     }
 
+    if (isExpiredPushSubscriptionStatus(result.statusCode)) {
+      expiredCount += await pruneExpiredSubscription(subscription.endpoint);
+    }
+
     firstReason ??= result.reason;
     firstStatusCode ??= result.statusCode;
   }
@@ -126,6 +133,7 @@ export async function sendAutomatedClimatePush(input: {
         subscriptions: input.subscriptions.length,
         reason,
         statusCode: firstStatusCode ?? null,
+        expiredSubscriptionsRemoved: expiredCount,
       },
     };
   }
@@ -135,6 +143,29 @@ export async function sendAutomatedClimatePush(input: {
     reason: null,
     metadata: {
       deliveredSubscriptions: successCount,
+      expiredSubscriptionsRemoved: expiredCount,
     },
   };
+}
+
+async function pruneExpiredSubscription(endpoint: string): Promise<number> {
+  try {
+    const removed = await deletePushSubscriptionByEndpoint(endpoint);
+
+    if (removed > 0) {
+      console.info(
+        "[push] Inscrição expirada removida do banco:",
+        { endpoint, removed },
+      );
+    }
+
+    return removed;
+  } catch (error) {
+    console.error(
+      "[push] Falha ao remover inscrição expirada:",
+      { endpoint, error },
+    );
+
+    return 0;
+  }
 }
