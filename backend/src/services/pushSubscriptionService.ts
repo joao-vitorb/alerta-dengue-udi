@@ -58,3 +58,13 @@ export async function deletePushSubscription(anonymousId: string) {
     deleted: true,
   };
 }
+
+export async function deletePushSubscriptionByEndpoint(
+  endpoint: string,
+): Promise<number> {
+  const result = await prisma.pushSubscription.deleteMany({
+    where: { endpoint },
+  });
+
+  return result.count;
+}
