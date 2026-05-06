@@ -62,6 +62,7 @@ export function PreferencesModal({
 
   useEffect(() => {
     if (!isOpen) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormValues(initialValues);
     setLocalErrorMessage(null);
   }, [isOpen, initialValues]);
