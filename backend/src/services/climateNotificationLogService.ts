@@ -32,8 +32,28 @@ export async function hasSentClimateNotification(input: {
   return existing !== null;
 }
 
+export async function hasSentEmailToRecipient(input: {
+  recipientEmail: string;
+  ruleKey: string;
+  windowKey: string;
+}) {
+  const existing = await prisma.climateNotificationLog.findFirst({
+    where: {
+      recipientEmail: input.recipientEmail,
+      channel: "EMAIL",
+      ruleKey: input.ruleKey,
+      windowKey: input.windowKey,
+      status: "SENT",
+    },
+    select: { id: true },
+  });
+
+  return existing !== null;
+}
+
 export async function createClimateNotificationLog(input: {
   anonymousId: string;
+  recipientEmail?: string | null;
   neighborhood: string;
   channel: ClimateNotificationChannel;
   ruleKey: string;
@@ -45,6 +65,7 @@ export async function createClimateNotificationLog(input: {
   await prisma.climateNotificationLog.create({
     data: {
       anonymousId: input.anonymousId,
+      recipientEmail: input.recipientEmail ?? null,
       neighborhood: input.neighborhood,
       channel: input.channel,
       ruleKey: input.ruleKey,

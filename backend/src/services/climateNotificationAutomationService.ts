@@ -7,6 +7,7 @@ import {
   createClimateNotificationLog,
   getClimateNotificationWindowKey,
   hasSentClimateNotification,
+  hasSentEmailToRecipient,
   type ClimateNotificationChannel,
 } from "./climateNotificationLogService";
 import {
@@ -147,6 +148,7 @@ async function deliverEmailNotification(input: {
 
   await createClimateNotificationLog({
     anonymousId: input.preference.anonymousId,
+    recipientEmail: input.preference.email,
     neighborhood: input.neighborhood,
     channel: "EMAIL",
     ruleKey: input.rule.ruleKey,
@@ -211,6 +213,28 @@ async function deliverPushNotification(input: {
   input.summary.pushFailed += 1;
 }
 
+async function isChannelAlreadyDelivered(input: {
+  channel: ClimateNotificationChannel;
+  preference: ActiveUserPreference;
+  rule: ClimateNotificationRule;
+  windowKey: string;
+}): Promise<boolean> {
+  if (input.channel === "EMAIL" && input.preference.email) {
+    return hasSentEmailToRecipient({
+      recipientEmail: input.preference.email,
+      ruleKey: input.rule.ruleKey,
+      windowKey: input.windowKey,
+    });
+  }
+
+  return hasSentClimateNotification({
+    anonymousId: input.preference.anonymousId,
+    channel: input.channel,
+    ruleKey: input.rule.ruleKey,
+    windowKey: input.windowKey,
+  });
+}
+
 async function deliverChannelIfNeeded(input: {
   channel: ClimateNotificationChannel;
   preference: ActiveUserPreference;
@@ -220,10 +244,10 @@ async function deliverChannelIfNeeded(input: {
   weather: WeatherSummaryForRule;
   summary: RunSummary;
 }) {
-  const alreadySent = await hasSentClimateNotification({
-    anonymousId: input.preference.anonymousId,
+  const alreadySent = await isChannelAlreadyDelivered({
     channel: input.channel,
-    ruleKey: input.rule.ruleKey,
+    preference: input.preference,
+    rule: input.rule,
     windowKey: input.windowKey,
   });
 
