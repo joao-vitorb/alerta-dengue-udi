@@ -14,11 +14,11 @@ export type WeatherSignals = {
   preventionWindowScore: number;
 };
 
-const RAIN_PROBABILITY_THRESHOLD = 0;
-const TODAY_PRECIPITATION_THRESHOLD = 0;
-const RECENT_RAIN_THRESHOLD_MM = 0;
-const WARM_TEMPERATURE_THRESHOLD = 0;
-const HUMID_THRESHOLD = 0;
+const RAIN_PROBABILITY_THRESHOLD = 50;
+const TODAY_PRECIPITATION_THRESHOLD = 5;
+const RECENT_RAIN_THRESHOLD_MM = 8;
+const WARM_TEMPERATURE_THRESHOLD = 27;
+const HUMID_THRESHOLD = 70;
 
 export function buildWeatherSignals(input: SignalsInput): WeatherSignals {
   const rainExpectedToday =
