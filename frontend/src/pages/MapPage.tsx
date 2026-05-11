@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { ClimateModal } from "../components/dashboard/ClimateModal";
 import { DashboardAlertBanner } from "../components/dashboard/DashboardAlertBanner";
 import { DashboardHeader } from "../components/dashboard/DashboardHeader";
@@ -13,7 +13,9 @@ import { OnboardingModal } from "../components/onboarding/OnboardingModal";
 const MapCanvas = lazy(() => import("../components/map/MapCanvas"));
 import { neighborhoodOptions } from "../data/neighborhoodOptions";
 import { useBrowserLocation } from "../hooks/useBrowserLocation";
+import { useGeolocationAllowed } from "../hooks/useGeolocationAllowed";
 import { useMapHealthUnits } from "../hooks/useMapHealthUnits";
+import { useNeighborhoodGeoJson } from "../hooks/useNeighborhoodGeoJson";
 import { usePreventiveAlerts } from "../hooks/usePreventiveAlerts";
 import { useUserPreference } from "../hooks/useUserPreference";
 import { useWeatherContext } from "../hooks/useWeatherContext";
@@ -21,6 +23,7 @@ import type {
   LocalExperience,
   PreferenceFormValues,
 } from "../types/userPreference";
+import { detectNeighborhoodFromCoordinates } from "../utils/neighborhoodFromCoordinates";
 
 type DynamicAlertContent = {
   title: string;
@@ -84,7 +87,24 @@ export function MapPage() {
     closeOnboarding,
   } = useUserPreference();
 
-  const { location, isLoadingLocation, requestLocation } = useBrowserLocation();
+  const isGeolocationAllowed =
+    useGeolocationAllowed() && experience?.deviceType === "MOBILE";
+
+  const { location, isLoadingLocation, locationError, requestLocation } =
+    useBrowserLocation({ autoRequest: isGeolocationAllowed });
+
+  const { data: neighborhoodGeoJson } = useNeighborhoodGeoJson();
+
+  const detectedNeighborhood = useMemo(() => {
+    if (!isGeolocationAllowed || !location) return null;
+    return detectNeighborhoodFromCoordinates(location, neighborhoodGeoJson);
+  }, [isGeolocationAllowed, location, neighborhoodGeoJson]);
+
+  useSyncDetectedNeighborhood({
+    experience,
+    detectedNeighborhood,
+    saveSettings,
+  });
 
   const {
     data: weatherData,
@@ -132,7 +152,9 @@ export function MapPage() {
           initialValues={onboardingInitialValues}
           isSubmitting={isSaving}
           errorMessage={errorMessage}
+          detectedNeighborhood={detectedNeighborhood}
           onSubmit={submitOnboarding}
+          onAllowGeolocation={requestLocation}
           onClose={closeOnboarding}
           canClose={Boolean(experience?.hasCompletedOnboarding)}
         />
@@ -152,6 +174,8 @@ export function MapPage() {
           onClose={() => setIsNearbyUnitsOpen(false)}
           neighborhood={experience?.neighborhood}
           location={location}
+          isLoadingLocation={isLoadingLocation}
+          locationError={locationError}
         />
 
         <VirtualDiagnosisModal
@@ -166,7 +190,10 @@ export function MapPage() {
           initialValues={onboardingInitialValues}
           isSubmitting={isSaving}
           errorMessage={errorMessage}
+          isGeolocationAllowed={isGeolocationAllowed}
+          detectedNeighborhood={detectedNeighborhood}
           onSubmit={saveSettings}
+          onRequestLocation={requestLocation}
         />
 
         <DashboardHeader onOpenPreferences={() => setIsPreferencesOpen(true)} />
@@ -202,4 +229,24 @@ export function MapPage() {
       </div>
     </main>
   );
+}
+
+function useSyncDetectedNeighborhood(input: {
+  experience: LocalExperience | null;
+  detectedNeighborhood: string | null;
+  saveSettings: (values: PreferenceFormValues) => Promise<void> | void;
+}) {
+  useEffect(() => {
+    const { experience, detectedNeighborhood, saveSettings } = input;
+    if (!experience || !detectedNeighborhood) return;
+    if (detectedNeighborhood === experience.neighborhood) return;
+
+    void saveSettings({
+      neighborhood: detectedNeighborhood,
+      email: experience.email,
+      notificationsEnabled: experience.notificationsEnabled,
+      emailNotificationsEnabled: experience.emailNotificationsEnabled,
+      pushNotificationsEnabled: experience.pushNotificationsEnabled,
+    });
+  }, [input]);
 }
