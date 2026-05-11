@@ -8,6 +8,7 @@ import type {
 } from "../../types/userPreference";
 import { OnboardingToggle } from "../onboarding/OnboardingToggle";
 import { DashboardModalShell } from "./DashboardModalShell";
+import { TestNotificationsSection } from "./TestNotificationsSection";
 
 type PreferencesModalProps = {
   isOpen: boolean;
@@ -205,6 +206,18 @@ export function PreferencesModal({
           <div className="rounded-xl border border-error-border bg-error-bg px-3 py-3 text-sm text-error-text sm:rounded-2xl sm:px-4">
             {localErrorMessage ?? errorMessage}
           </div>
+        ) : null}
+
+        {experience?.hasCompletedOnboarding && experience.anonymousId ? (
+          <TestNotificationsSection
+            anonymousId={experience.anonymousId}
+            emailAvailable={Boolean(
+              experience.emailNotificationsEnabled && experience.email,
+            )}
+            pushAvailable={Boolean(
+              experience.pushNotificationsEnabled && !isDesktop,
+            )}
+          />
         ) : null}
 
         <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row sm:gap-3">
