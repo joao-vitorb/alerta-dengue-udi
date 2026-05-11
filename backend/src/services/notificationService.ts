@@ -1,133 +1,47 @@
 import type { UserPreference } from "../generated/prisma/client";
 import { AppError } from "../errors/AppError";
+import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
-import { sendEmailNotification } from "./emailNotificationService";
-import { getPreventiveAlertsByNeighborhood } from "./preventiveAlertService";
-import { sendPushNotification } from "./pushNotificationService";
+import {
+  listActivePushSubscriptions,
+  sendAutomatedClimateEmail,
+  sendAutomatedClimatePush,
+} from "./climateNotificationDeliveryService";
+import type { ClimateNotificationRule } from "./climateNotificationRuleService";
+import { getWeatherPreventionContext } from "./weatherService";
 
-type AlertSummary = {
-  title: string;
-  recommendation: string;
+type TestChannel = "EMAIL" | "PUSH";
+
+type WeatherSummary = {
+  probability: number | null;
+  recentRainMm: number;
 };
 
-type NotificationChannelResult = {
-  attempted: boolean;
-  delivered: boolean;
-  simulated: boolean;
-  reason: string | null;
+type ScheduleTestNotificationResult = {
+  channel: TestChannel;
+  scheduledInSeconds: number;
 };
 
-const DISABLED_EMAIL_RESULT: NotificationChannelResult = {
-  attempted: false,
-  delivered: false,
-  simulated: false,
-  reason: "Email channel not enabled",
-};
+const PUSH_DELAY_SECONDS = 15;
 
-const DISABLED_PUSH_RESULT: NotificationChannelResult = {
-  attempted: false,
-  delivered: false,
-  simulated: false,
-  reason: "Push channel not enabled",
-};
+const testLogger = logger.child({ module: "test-notifications" });
 
-const MISSING_PUSH_SUBSCRIPTION_RESULT: NotificationChannelResult = {
-  attempted: false,
-  delivered: false,
-  simulated: false,
-  reason: "Push subscription not found",
-};
+export async function scheduleTestNotification(input: {
+  anonymousId: string;
+  channel: TestChannel;
+}): Promise<ScheduleTestNotificationResult> {
+  const preference = await loadUserPreference(input.anonymousId);
 
-function buildEmailBody(input: {
-  neighborhood: string;
-  alerts: AlertSummary[];
-}) {
-  const headline =
-    input.alerts[0]?.title ?? "Atualização preventiva disponível";
-  const recommendations = input.alerts
-    .slice(0, 3)
-    .map(
-      (alert, index) => `${index + 1}. ${alert.title}\n${alert.recommendation}`,
-    )
-    .join("\n\n");
-
-  return [
-    "Alerta Dengue UDI",
-    "",
-    `Bairro: ${input.neighborhood}`,
-    `Resumo: ${headline}`,
-    "",
-    recommendations || "Sem recomendações detalhadas no momento.",
-    "",
-    "Este envio é informativo e preventivo.",
-  ].join("\n");
-}
-
-function buildPushPayload(input: {
-  neighborhood: string;
-  title: string;
-  recommendation: string;
-}) {
-  return {
-    title: "Alerta Dengue UDI",
-    body: `${input.neighborhood}: ${input.title}. ${input.recommendation}`,
-    url: "/",
-  };
-}
-
-async function sendTestEmail(
-  preference: UserPreference,
-  alerts: AlertSummary[],
-): Promise<NotificationChannelResult> {
-  if (!preference.emailNotificationsEnabled || !preference.email) {
-    return DISABLED_EMAIL_RESULT;
+  if (input.channel === "EMAIL") {
+    return handleEmailRequest(preference);
   }
 
-  return sendEmailNotification({
-    to: preference.email,
-    subject: `Alerta Dengue UDI - ${preference.neighborhood}`,
-    text: buildEmailBody({
-      neighborhood: preference.neighborhood,
-      alerts,
-    }),
-    neighborhood: preference.neighborhood,
-  });
+  return handlePushRequest(preference);
 }
 
-async function sendTestPush(
-  preference: UserPreference,
-  primaryAlert: AlertSummary,
-): Promise<NotificationChannelResult> {
-  if (
-    preference.deviceType !== "MOBILE" ||
-    !preference.pushNotificationsEnabled
-  ) {
-    return DISABLED_PUSH_RESULT;
-  }
-
-  const subscription = await prisma.pushSubscription.findUnique({
-    where: { anonymousId: preference.anonymousId },
-  });
-
-  if (!subscription) {
-    return MISSING_PUSH_SUBSCRIPTION_RESULT;
-  }
-
-  return sendPushNotification(
-    {
-      endpoint: subscription.endpoint,
-      p256dh: subscription.p256dh,
-      auth: subscription.auth,
-    },
-    buildPushPayload({
-      neighborhood: preference.neighborhood,
-      title: primaryAlert.title,
-      recommendation: primaryAlert.recommendation,
-    }),
-  );
-}
-
-export async function sendTestNotification(anonymousId: string) {
+async function loadUserPreference(
+  anonymousId: string,
+): Promise<UserPreference> {
   const preference = await prisma.userPreference.findUnique({
     where: { anonymousId },
   });
@@ -136,30 +50,119 @@ export async function sendTestNotification(anonymousId: string) {
     throw new AppError("User preference not found", 404);
   }
 
-  const alertsResult = await getPreventiveAlertsByNeighborhood(
-    preference.neighborhood,
-  );
-  const primaryAlert = alertsResult.alerts[0];
+  return preference;
+}
 
-  if (!primaryAlert) {
-    throw new AppError("No preventive alerts available", 404);
+async function handleEmailRequest(
+  preference: UserPreference,
+): Promise<ScheduleTestNotificationResult> {
+  assertEmailChannelEnabled(preference);
+  await deliverTestEmail(preference);
+
+  return { channel: "EMAIL", scheduledInSeconds: 0 };
+}
+
+async function handlePushRequest(
+  preference: UserPreference,
+): Promise<ScheduleTestNotificationResult> {
+  assertPushChannelEnabled(preference);
+  await assertPushSubscriptionRegistered(preference.anonymousId);
+
+  scheduleDelayedPushDelivery(preference.anonymousId);
+
+  return { channel: "PUSH", scheduledInSeconds: PUSH_DELAY_SECONDS };
+}
+
+function assertEmailChannelEnabled(preference: UserPreference): void {
+  if (!preference.emailNotificationsEnabled || !preference.email) {
+    throw new AppError(
+      "Email notifications are not enabled for this user.",
+      400,
+    );
   }
+}
 
-  const alerts: AlertSummary[] = alertsResult.alerts.map((alert) => ({
-    title: alert.title,
-    recommendation: alert.recommendation,
-  }));
+function assertPushChannelEnabled(preference: UserPreference): void {
+  if (!preference.pushNotificationsEnabled) {
+    throw new AppError(
+      "Push notifications are not enabled for this user.",
+      400,
+    );
+  }
+}
 
-  const [emailResult, pushResult] = await Promise.all([
-    sendTestEmail(preference, alerts),
-    sendTestPush(preference, primaryAlert),
-  ]);
+async function assertPushSubscriptionRegistered(
+  anonymousId: string,
+): Promise<void> {
+  const subscriptions = await listActivePushSubscriptions(anonymousId);
 
-  return {
-    anonymousId,
+  if (subscriptions.length === 0) {
+    throw new AppError("Push subscription is not registered.", 400);
+  }
+}
+
+function scheduleDelayedPushDelivery(anonymousId: string): void {
+  setTimeout(() => {
+    void deliverTestPush(anonymousId).catch((error) => {
+      testLogger.error(
+        { err: error, anonymousId },
+        "Failed to deliver test push notification",
+      );
+    });
+  }, PUSH_DELAY_SECONDS * 1000).unref();
+}
+
+async function deliverTestEmail(preference: UserPreference): Promise<void> {
+  if (!preference.email) return;
+
+  const weather = await loadWeatherSummary(preference.neighborhood);
+
+  await sendAutomatedClimateEmail({
+    to: preference.email,
     neighborhood: preference.neighborhood,
-    alertsCount: alertsResult.alerts.length,
-    email: emailResult,
-    push: pushResult,
+    rule: buildTestRule(preference.neighborhood),
+    weather,
+  });
+}
+
+async function deliverTestPush(anonymousId: string): Promise<void> {
+  const preference = await prisma.userPreference.findUnique({
+    where: { anonymousId },
+  });
+
+  if (!preference) return;
+
+  const subscriptions = await listActivePushSubscriptions(anonymousId);
+  if (subscriptions.length === 0) return;
+
+  await sendAutomatedClimatePush({
+    subscriptions,
+    neighborhood: preference.neighborhood,
+    rule: buildTestRule(preference.neighborhood),
+  });
+}
+
+function buildTestRule(neighborhood: string): ClimateNotificationRule {
+  return {
+    ruleKey: "TEST",
+    title: `Notificação de teste — ${neighborhood}`,
+    message:
+      "Este é um envio de teste solicitado a partir das suas preferências. " +
+      "Quando uma regra climática real disparar, você receberá um alerta com recomendações preventivas para o seu bairro.",
+    severity: "attention",
   };
+}
+
+async function loadWeatherSummary(
+  neighborhood: string,
+): Promise<WeatherSummary> {
+  try {
+    const context = await getWeatherPreventionContext(neighborhood);
+    return {
+      probability: context.today.precipitationProbabilityMax,
+      recentRainMm: context.recent.pastThreeDaysPrecipitationSumMm,
+    };
+  } catch {
+    return { probability: null, recentRainMm: 0 };
+  }
 }
