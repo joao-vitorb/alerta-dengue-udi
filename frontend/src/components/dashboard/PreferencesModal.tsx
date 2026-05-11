@@ -6,6 +6,7 @@ import type {
   LocalExperience,
   PreferenceFormValues,
 } from "../../types/userPreference";
+import { saveGeolocationAllowed } from "../../utils/geolocationPreference";
 import { OnboardingToggle } from "../onboarding/OnboardingToggle";
 import { DashboardModalShell } from "./DashboardModalShell";
 import { TestNotificationsSection } from "./TestNotificationsSection";
@@ -17,7 +18,10 @@ type PreferencesModalProps = {
   initialValues: PreferenceFormValues;
   isSubmitting: boolean;
   errorMessage: string | null;
+  isGeolocationAllowed: boolean;
+  detectedNeighborhood?: string | null;
   onSubmit: (values: PreferenceFormValues) => Promise<void> | void;
+  onRequestLocation: () => void;
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -49,24 +53,31 @@ export function PreferencesModal({
   initialValues,
   isSubmitting,
   errorMessage,
+  isGeolocationAllowed,
+  detectedNeighborhood,
   onSubmit,
+  onRequestLocation,
 }: PreferencesModalProps) {
   const [formValues, setFormValues] =
     useState<PreferenceFormValues>(initialValues);
   const [localErrorMessage, setLocalErrorMessage] = useState<string | null>(
     null,
   );
-
   const isDesktop = experience?.deviceType === "DESKTOP";
   const isEmailRequired =
     formValues.notificationsEnabled && formValues.emailNotificationsEnabled;
+
+  const [useGeolocation, setUseGeolocation] = useState<boolean>(
+    isDesktop ? false : isGeolocationAllowed,
+  );
 
   useEffect(() => {
     if (!isOpen) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormValues(initialValues);
+    setUseGeolocation(isDesktop ? false : isGeolocationAllowed);
     setLocalErrorMessage(null);
-  }, [isOpen, initialValues]);
+  }, [isOpen, initialValues, isDesktop, isGeolocationAllowed]);
 
   function setField<K extends keyof PreferenceFormValues>(
     key: K,
@@ -86,8 +97,21 @@ export function PreferencesModal({
     }));
   }
 
+  function resolveFinalNeighborhood(): string {
+    if (!useGeolocation) return formValues.neighborhood;
+    return (
+      detectedNeighborhood ||
+      formValues.neighborhood ||
+      initialValues.neighborhood
+    );
+  }
+
   function validate(): string | null {
-    if (!formValues.neighborhood) return "Selecione um bairro.";
+    if (!resolveFinalNeighborhood()) {
+      return useGeolocation
+        ? "Aguarde sua localização ser detectada ou desative o toggle e selecione manualmente."
+        : "Selecione um bairro.";
+    }
     if (isEmailRequired && !formValues.email.trim()) {
       return "Informe um email para receber notificações.";
     }
@@ -95,6 +119,15 @@ export function PreferencesModal({
       return "Informe um email válido.";
     }
     return null;
+  }
+
+  function handleUseGeolocationChange(value: boolean) {
+    if (isDesktop) return;
+    setUseGeolocation(value);
+    saveGeolocationAllowed(value);
+    if (value) {
+      onRequestLocation();
+    }
   }
 
   async function handleSave() {
@@ -106,7 +139,12 @@ export function PreferencesModal({
       return;
     }
 
-    await onSubmit(buildSubmitValues(formValues, isDesktop));
+    const valuesToSubmit = {
+      ...formValues,
+      neighborhood: resolveFinalNeighborhood(),
+    };
+
+    await onSubmit(buildSubmitValues(valuesToSubmit, isDesktop));
   }
 
   return (
@@ -117,6 +155,29 @@ export function PreferencesModal({
       icon={<FontAwesomeIcon icon={faSliders} className="text-[18px]" />}
     >
       <div className="space-y-4 sm:space-y-5">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
+          <div>
+            <p
+              className={`text-[14px] font-semibold sm:text-[15px] ${
+                isDesktop ? "text-text-muted" : "text-text-primary"
+              }`}
+            >
+              Usar minha localização (somente celular)
+            </p>
+            <p className="mt-1 text-[12px] leading-5 text-text-secondary sm:text-[13px]">
+              {isDesktop
+                ? "Disponível apenas em dispositivos móveis."
+                : "Define seu bairro automaticamente pela sua posição atual."}
+            </p>
+          </div>
+
+          <OnboardingToggle
+            checked={useGeolocation}
+            disabled={isDesktop}
+            onChange={handleUseGeolocationChange}
+          />
+        </div>
+
         <div>
           <label className="mb-2 block text-[14px] font-semibold text-text-primary sm:text-[15px]">
             Bairro
@@ -124,7 +185,8 @@ export function PreferencesModal({
           <select
             value={formValues.neighborhood}
             onChange={(event) => setField("neighborhood", event.target.value)}
-            className="h-11 w-full rounded-lg border border-[#e3e7eb] bg-[#f6f7f9] px-3 text-[14px] text-text-primary outline-none transition cursor-pointer focus:border-[#0f8f67] sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
+            disabled={useGeolocation}
+            className="h-11 w-full rounded-lg border border-[#e3e7eb] bg-[#f6f7f9] px-3 text-[14px] text-text-primary outline-none transition cursor-pointer focus:border-[#0f8f67] disabled:cursor-not-allowed disabled:opacity-60 sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
           >
             {neighborhoodOptions.map((option) => (
               <option key={option} value={option}>
@@ -132,6 +194,14 @@ export function PreferencesModal({
               </option>
             ))}
           </select>
+
+          {useGeolocation ? (
+            <p className="mt-2 text-[12px] leading-5 text-text-secondary sm:text-[13px]">
+              {detectedNeighborhood
+                ? `Bairro detectado pela sua localização: ${detectedNeighborhood}.`
+                : "Aguardando sua localização para detectar o bairro. Desative o toggle acima para selecionar manualmente."}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex items-center justify-between gap-3 sm:gap-4">

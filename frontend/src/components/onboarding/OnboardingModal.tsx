@@ -4,6 +4,10 @@ import type {
   DeviceType,
   PreferenceFormValues,
 } from "../../types/userPreference";
+import {
+  getGeolocationAllowed,
+  saveGeolocationAllowed,
+} from "../../utils/geolocationPreference";
 import { OnboardingStepIcon } from "./OnboardingStepIcon";
 import { OnboardingStepIndicator } from "./OnboardingStepIndicator";
 import { OnboardingToggle } from "./OnboardingToggle";
@@ -14,7 +18,9 @@ type OnboardingModalProps = {
   initialValues: PreferenceFormValues;
   isSubmitting: boolean;
   errorMessage: string | null;
+  detectedNeighborhood?: string | null;
   onSubmit: (values: PreferenceFormValues) => Promise<void> | void;
+  onAllowGeolocation?: () => void;
   onClose: () => void;
   canClose: boolean;
 };
@@ -60,21 +66,15 @@ function isValidEmail(value: string) {
   return EMAIL_PATTERN.test(value.trim());
 }
 
-function requestSilentGeolocation() {
-  if (!("geolocation" in navigator)) return;
-  navigator.geolocation.getCurrentPosition(
-    () => {},
-    () => {},
-  );
-}
-
 export function OnboardingModal({
   isOpen,
   deviceType,
   initialValues,
   isSubmitting,
   errorMessage,
+  detectedNeighborhood,
   onSubmit,
+  onAllowGeolocation,
   onClose,
   canClose,
 }: OnboardingModalProps) {
@@ -99,7 +99,7 @@ export function OnboardingModal({
 
     setCurrentStep(0);
     setNeighborhood(canClose ? initialValues.neighborhood : "");
-    setAllowGeolocation(false);
+    setAllowGeolocation(isDesktop ? false : getGeolocationAllowed());
     setNotificationsEnabled(initialValues.notificationsEnabled);
     setPushNotificationsEnabled(
       isDesktop ? false : initialValues.pushNotificationsEnabled,
@@ -130,15 +130,29 @@ export function OnboardingModal({
     return null;
   }
 
+  function resolveFinalNeighborhood(): string {
+    if (!allowGeolocation) return neighborhood;
+    return detectedNeighborhood || neighborhood || initialValues.neighborhood;
+  }
+
   function buildFinalValues(): PreferenceFormValues {
     return {
-      neighborhood,
+      neighborhood: resolveFinalNeighborhood(),
       email: isEmailRequired ? email.trim() : "",
       notificationsEnabled,
       emailNotificationsEnabled: isEmailRequired,
       pushNotificationsEnabled:
         !isDesktop && notificationsEnabled && pushNotificationsEnabled,
     };
+  }
+
+  function handleAllowGeolocationChange(value: boolean) {
+    if (isDesktop) return;
+    setAllowGeolocation(value);
+    saveGeolocationAllowed(value);
+    if (value) {
+      onAllowGeolocation?.();
+    }
   }
 
   async function goToNextStep() {
@@ -150,7 +164,7 @@ export function OnboardingModal({
     }
 
     if (currentStep === 1) {
-      if (!neighborhood) {
+      if (!allowGeolocation && !neighborhood) {
         setLocalErrorMessage("Selecione um bairro para continuar.");
         return;
       }
@@ -165,12 +179,14 @@ export function OnboardingModal({
         return;
       }
 
-      await onSubmit(buildFinalValues());
-
-      if (allowGeolocation) {
-        requestSilentGeolocation();
+      if (!resolveFinalNeighborhood()) {
+        setLocalErrorMessage(
+          "Aguarde sua localização ser detectada ou desative o toggle e selecione um bairro manualmente.",
+        );
+        return;
       }
 
+      await onSubmit(buildFinalValues());
       setCurrentStep(3);
       return;
     }
@@ -226,7 +242,8 @@ export function OnboardingModal({
                   id="onboarding-neighborhood"
                   value={neighborhood}
                   onChange={(event) => setNeighborhood(event.target.value)}
-                  className="h-11 w-full appearance-none rounded-lg border border-[#edf0f4] bg-[#f3f5f8] px-3 text-[14px] text-[#6d7390] outline-none transition cursor-pointer focus:border-brand-dark sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
+                  disabled={allowGeolocation}
+                  className="h-11 w-full appearance-none rounded-lg border border-[#edf0f4] bg-[#f3f5f8] px-3 text-[14px] text-[#6d7390] outline-none transition cursor-pointer focus:border-brand-dark disabled:cursor-not-allowed disabled:opacity-60 sm:h-12 sm:rounded-xl sm:px-4 sm:text-[15px]"
                 >
                   <option value="">Selecione seu bairro</option>
                   {neighborhoodOptions.map((option) => (
@@ -254,18 +271,36 @@ export function OnboardingModal({
                   </svg>
                 </span>
               </div>
+
+              {allowGeolocation ? (
+                <p className="mt-2 text-[12px] leading-5 text-text-secondary sm:text-[13px]">
+                  {detectedNeighborhood
+                    ? `Bairro detectado pela sua localização: ${detectedNeighborhood}.`
+                    : "Seu bairro será detectado automaticamente assim que sua localização for obtida."}
+                </p>
+              ) : null}
             </div>
 
             <div className="mt-5 flex items-center justify-between gap-3 sm:mt-6 sm:gap-4">
               <div>
-                <p className="text-[14px] font-semibold text-brand-dark sm:text-[15px]">
-                  Permitir geolocalização
+                <p
+                  className={`text-[14px] font-semibold sm:text-[15px] ${
+                    isDesktop ? "text-text-muted" : "text-brand-dark"
+                  }`}
+                >
+                  Permitir geolocalização (somente celular)
+                </p>
+                <p className="mt-1 text-[12px] leading-5 text-text-secondary sm:text-[13px]">
+                  {isDesktop
+                    ? "Disponível apenas em dispositivos móveis."
+                    : "Define seu bairro automaticamente. Pode desativar nas preferências."}
                 </p>
               </div>
 
               <OnboardingToggle
                 checked={allowGeolocation}
-                onChange={setAllowGeolocation}
+                disabled={isDesktop}
+                onChange={handleAllowGeolocationChange}
               />
             </div>
           </div>

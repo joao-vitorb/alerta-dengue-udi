@@ -14,6 +14,8 @@ type NearbyHealthUnitsModalProps = {
     latitude: number;
     longitude: number;
   } | null;
+  isLoadingLocation?: boolean;
+  locationError?: string | null;
 };
 
 const RECOMMENDED_LIMIT = 6;
@@ -103,6 +105,8 @@ export function NearbyHealthUnitsModal({
   onClose,
   neighborhood,
   location,
+  isLoadingLocation = false,
+  locationError = null,
 }: NearbyHealthUnitsModalProps) {
   const [items, setItems] = useState<HealthUnit[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -149,6 +153,16 @@ export function NearbyHealthUnitsModal({
       title="Postos de Saúde Próximos"
       icon={<FontAwesomeIcon icon={faLocationDot} className="text-[18px]" />}
     >
+      {locationError ? (
+        <div className="mb-3 rounded-[14px] border border-warning-border bg-warning-bg px-3 py-3 text-sm text-warning-body sm:mb-4 sm:rounded-[18px] sm:px-4 sm:py-4">
+          {locationError} Mostrando unidades pelo bairro selecionado.
+        </div>
+      ) : isLoadingLocation ? (
+        <div className="mb-3 rounded-[14px] border border-border-card bg-surface-muted px-3 py-3 text-sm text-text-secondary sm:mb-4 sm:rounded-[18px] sm:px-4 sm:py-4">
+          Buscando sua localização para ordenar as unidades por distância...
+        </div>
+      ) : null}
+
       {isLoading ? (
         <div className="rounded-[14px] border border-border-card bg-surface-muted px-3 py-6 text-center text-sm text-[#697388] sm:rounded-[18px] sm:px-4 sm:py-8">
           Carregando unidades próximas...
