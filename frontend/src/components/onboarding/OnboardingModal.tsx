@@ -132,7 +132,7 @@ export function OnboardingModal({
 
   function resolveFinalNeighborhood(): string {
     if (!allowGeolocation) return neighborhood;
-    return detectedNeighborhood || neighborhood || initialValues.neighborhood;
+    return detectedNeighborhood || neighborhood;
   }
 
   function buildFinalValues(): PreferenceFormValues {
