@@ -2,6 +2,7 @@ export {
   faBell,
   faCheck,
   faCircleInfo,
+  faClock,
   faCloud,
   faCloudRain,
   faDroplet,

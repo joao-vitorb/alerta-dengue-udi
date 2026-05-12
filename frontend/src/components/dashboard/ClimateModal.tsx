@@ -1,5 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+  faClock,
   faCloud,
   faCloudRain,
   faDroplet,
@@ -161,11 +162,17 @@ export function ClimateModal({
             />
 
             <WeatherMetricCard
-              className="col-span-2 sm:col-span-1"
               iconColor="text-[#10c0b0]"
               icon={faWind}
               label="Vento"
               value={formatWindSpeed(data.current.windSpeedKmh)}
+            />
+
+            <WeatherMetricCard
+              iconColor="text-[#71798f]"
+              icon={faClock}
+              label="Atualização"
+              value={formatTime(data.fetchedAt)}
             />
           </div>
 
@@ -185,10 +192,6 @@ export function ClimateModal({
               </div>
             </div>
           </section>
-
-          <p className="mt-4 text-center text-[13px] text-[#71798f] sm:mt-5 sm:text-[14px]">
-            Última atualização: {formatTime(data.fetchedAt)}
-          </p>
         </div>
       )}
     </DashboardModalShell>

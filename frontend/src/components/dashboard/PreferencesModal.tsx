@@ -34,15 +34,15 @@ function buildSubmitValues(
   values: PreferenceFormValues,
   isDesktop: boolean,
 ): PreferenceFormValues {
-  const isEmailRequired =
-    values.notificationsEnabled && values.emailNotificationsEnabled;
+  const pushEnabled = !isDesktop && values.pushNotificationsEnabled;
+  const emailEnabled = values.emailNotificationsEnabled;
 
   return {
     ...values,
-    pushNotificationsEnabled:
-      !isDesktop && values.notificationsEnabled && values.pushNotificationsEnabled,
-    emailNotificationsEnabled: isEmailRequired,
-    email: isEmailRequired ? values.email.trim() : "",
+    pushNotificationsEnabled: pushEnabled,
+    emailNotificationsEnabled: emailEnabled,
+    notificationsEnabled: pushEnabled || emailEnabled,
+    email: emailEnabled ? values.email.trim() : "",
   };
 }
 
@@ -64,8 +64,7 @@ export function PreferencesModal({
     null,
   );
   const isDesktop = experience?.deviceType === "DESKTOP";
-  const isEmailRequired =
-    formValues.notificationsEnabled && formValues.emailNotificationsEnabled;
+  const isEmailRequired = formValues.emailNotificationsEnabled;
 
   const [useGeolocation, setUseGeolocation] = useState<boolean>(
     isDesktop ? false : isGeolocationAllowed,
@@ -84,17 +83,6 @@ export function PreferencesModal({
     value: PreferenceFormValues[K],
   ) {
     setFormValues((current) => ({ ...current, [key]: value }));
-  }
-
-  function handleNotificationsEnabledChange(value: boolean) {
-    setFormValues((current) => ({
-      ...current,
-      notificationsEnabled: value,
-      pushNotificationsEnabled: value ? current.pushNotificationsEnabled : false,
-      emailNotificationsEnabled: value
-        ? current.emailNotificationsEnabled
-        : false,
-    }));
   }
 
   function resolveFinalNeighborhood(): string {
@@ -205,22 +193,9 @@ export function PreferencesModal({
         </div>
 
         <div className="flex items-center justify-between gap-3 sm:gap-4">
-          <p className="text-[14px] font-semibold text-text-primary sm:text-[15px]">
-            Ativar notificações
-          </p>
-
-          <OnboardingToggle
-            checked={formValues.notificationsEnabled}
-            onChange={handleNotificationsEnabledChange}
-          />
-        </div>
-
-        <div className="flex items-center justify-between gap-3 sm:gap-4">
           <p
             className={`text-[14px] font-semibold sm:text-[15px] ${
-              formValues.notificationsEnabled && !isDesktop
-                ? "text-text-primary"
-                : "text-text-muted"
+              isDesktop ? "text-text-muted" : "text-text-primary"
             }`}
           >
             Notificações push
@@ -228,25 +203,18 @@ export function PreferencesModal({
 
           <OnboardingToggle
             checked={formValues.pushNotificationsEnabled}
-            disabled={!formValues.notificationsEnabled || isDesktop}
+            disabled={isDesktop}
             onChange={(value) => setField("pushNotificationsEnabled", value)}
           />
         </div>
 
         <div className="flex items-center justify-between gap-3 sm:gap-4">
-          <p
-            className={`text-[14px] font-semibold sm:text-[15px] ${
-              formValues.notificationsEnabled
-                ? "text-text-primary"
-                : "text-text-muted"
-            }`}
-          >
+          <p className="text-[14px] font-semibold text-text-primary sm:text-[15px]">
             Notificações por email
           </p>
 
           <OnboardingToggle
             checked={formValues.emailNotificationsEnabled}
-            disabled={!formValues.notificationsEnabled}
             onChange={(value) => setField("emailNotificationsEnabled", value)}
           />
         </div>

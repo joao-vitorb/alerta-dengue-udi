@@ -16,7 +16,7 @@ export function OnboardingToggle({
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-7 w-13 items-center cursor-pointer rounded-full transition ${
+      className={`relative inline-flex h-7 w-12 shrink-0 items-center cursor-pointer rounded-full px-1 transition ${
         disabled
           ? "cursor-not-allowed bg-disabled-bg"
           : checked
@@ -26,7 +26,7 @@ export function OnboardingToggle({
     >
       <span
         className={`h-5 w-5 rounded-full bg-white shadow-sm transition ${
-          checked ? "translate-x-7" : "translate-x-1"
+          checked ? "translate-x-5" : "translate-x-0"
         }`}
       />
     </button>
