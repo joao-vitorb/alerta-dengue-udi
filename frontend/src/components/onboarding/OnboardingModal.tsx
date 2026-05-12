@@ -81,7 +81,6 @@ export function OnboardingModal({
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(0);
   const [neighborhood, setNeighborhood] = useState("");
   const [allowGeolocation, setAllowGeolocation] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [pushNotificationsEnabled, setPushNotificationsEnabled] =
     useState(false);
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] =
@@ -100,7 +99,6 @@ export function OnboardingModal({
     setCurrentStep(0);
     setNeighborhood(canClose ? initialValues.neighborhood : "");
     setAllowGeolocation(isDesktop ? false : getGeolocationAllowed());
-    setNotificationsEnabled(initialValues.notificationsEnabled);
     setPushNotificationsEnabled(
       isDesktop ? false : initialValues.pushNotificationsEnabled,
     );
@@ -114,7 +112,7 @@ export function OnboardingModal({
 
   const { variant, title, description } = STEP_CONTENT[currentStep];
   const displayedErrorMessage = localErrorMessage ?? errorMessage;
-  const isEmailRequired = notificationsEnabled && emailNotificationsEnabled;
+  const isEmailRequired = emailNotificationsEnabled;
 
   function goToPreviousStep() {
     setLocalErrorMessage(null);
@@ -136,13 +134,15 @@ export function OnboardingModal({
   }
 
   function buildFinalValues(): PreferenceFormValues {
+    const pushEnabled = !isDesktop && pushNotificationsEnabled;
+    const emailEnabled = emailNotificationsEnabled;
+
     return {
       neighborhood: resolveFinalNeighborhood(),
-      email: isEmailRequired ? email.trim() : "",
-      notificationsEnabled,
-      emailNotificationsEnabled: isEmailRequired,
-      pushNotificationsEnabled:
-        !isDesktop && notificationsEnabled && pushNotificationsEnabled,
+      email: emailEnabled ? email.trim() : "",
+      notificationsEnabled: pushEnabled || emailEnabled,
+      emailNotificationsEnabled: emailEnabled,
+      pushNotificationsEnabled: pushEnabled,
     };
   }
 
@@ -194,22 +194,12 @@ export function OnboardingModal({
     onClose();
   }
 
-  function handleNotificationsEnabledChange(value: boolean) {
-    setNotificationsEnabled(value);
-
-    if (!value) {
-      setPushNotificationsEnabled(false);
-      setEmailNotificationsEnabled(false);
-    }
-  }
-
   function handlePushNotificationsEnabledChange(value: boolean) {
-    if (isDesktop || !notificationsEnabled) return;
+    if (isDesktop) return;
     setPushNotificationsEnabled(value);
   }
 
   function handleEmailNotificationsEnabledChange(value: boolean) {
-    if (!notificationsEnabled) return;
     setEmailNotificationsEnabled(value);
   }
 
@@ -310,22 +300,9 @@ export function OnboardingModal({
           <div className="mx-auto mt-6 max-w-117 sm:mt-8">
             <div className="space-y-3 sm:space-y-4">
               <div className="flex items-center justify-between gap-3 sm:gap-4">
-                <p className="text-[14px] font-semibold text-brand-dark sm:text-[15px]">
-                  Ativar notificações
-                </p>
-
-                <OnboardingToggle
-                  checked={notificationsEnabled}
-                  onChange={handleNotificationsEnabledChange}
-                />
-              </div>
-
-              <div className="flex items-center justify-between gap-3 sm:gap-4">
                 <p
                   className={`text-[14px] font-semibold sm:text-[15px] ${
-                    notificationsEnabled && !isDesktop
-                      ? "text-brand-dark"
-                      : "text-text-muted"
+                    isDesktop ? "text-text-muted" : "text-brand-dark"
                   }`}
                 >
                   Notificações push (somente celular)
@@ -333,23 +310,18 @@ export function OnboardingModal({
 
                 <OnboardingToggle
                   checked={pushNotificationsEnabled}
-                  disabled={!notificationsEnabled || isDesktop}
+                  disabled={isDesktop}
                   onChange={handlePushNotificationsEnabledChange}
                 />
               </div>
 
               <div className="flex items-center justify-between gap-3 sm:gap-4">
-                <p
-                  className={`text-[14px] font-semibold sm:text-[15px] ${
-                    notificationsEnabled ? "text-brand-dark" : "text-text-muted"
-                  }`}
-                >
+                <p className="text-[14px] font-semibold text-brand-dark sm:text-[15px]">
                   Notificações por email
                 </p>
 
                 <OnboardingToggle
                   checked={emailNotificationsEnabled}
-                  disabled={!notificationsEnabled}
                   onChange={handleEmailNotificationsEnabledChange}
                 />
               </div>

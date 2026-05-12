@@ -117,7 +117,7 @@ function TestChannelButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-10 flex-1 items-center justify-center rounded-lg border border-border-card bg-white px-3 text-[13px] font-semibold text-text-primary transition cursor-pointer hover:bg-page-bg disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:rounded-xl sm:text-[14px]"
+      className="flex h-12 flex-1 items-center justify-center rounded-lg border border-border-card bg-white px-3 text-[13px] font-semibold text-text-primary transition cursor-pointer hover:bg-page-bg disabled:cursor-not-allowed disabled:opacity-50 sm:h-13 sm:rounded-xl sm:text-[14px]"
     >
       {resolveButtonLabel(status, targetChannel, label)}
     </button>

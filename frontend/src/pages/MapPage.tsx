@@ -144,7 +144,7 @@ export function MapPage() {
   }
 
   return (
-    <main className="min-h-screen bg-page-bg px-3 py-3 sm:px-5 sm:py-4 lg:px-8 lg:py-5">
+    <main className="min-h-screen bg-page-bg px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5 sm:pb-4 sm:pt-[max(1rem,env(safe-area-inset-top))] lg:px-8 lg:pb-5 lg:pt-[max(1.25rem,env(safe-area-inset-top))]">
       <div className="mx-auto w-full max-w-257.5">
         <OnboardingModal
           isOpen={isOnboardingOpen}
