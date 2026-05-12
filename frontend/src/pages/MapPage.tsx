@@ -239,6 +239,7 @@ function useSyncDetectedNeighborhood(input: {
   useEffect(() => {
     const { experience, detectedNeighborhood, saveSettings } = input;
     if (!experience || !detectedNeighborhood) return;
+    if (!experience.hasCompletedOnboarding) return;
     if (detectedNeighborhood === experience.neighborhood) return;
 
     void saveSettings({
